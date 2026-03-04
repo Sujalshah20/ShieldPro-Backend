@@ -1,0 +1,43 @@
+const mongoose = require('mongoose');
+
+const transactionSchema = mongoose.Schema({
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        ref: 'User'
+    },
+    policy: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        ref: 'Policy'
+    },
+    amount: {
+        type: Number,
+        required: true
+    },
+    transactionId: {
+        type: String,
+        required: true,
+        unique: true
+    },
+    paymentMethod: {
+        type: String,
+        required: true,
+        default: 'Credit Card'
+    },
+    status: {
+        type: String,
+        required: true,
+        enum: ['Success', 'Failed', 'Pending'],
+        default: 'Success'
+    },
+    paymentDate: {
+        type: Date,
+        required: true,
+        default: Date.now
+    }
+}, {
+    timestamps: true
+});
+
+module.exports = mongoose.model('Transaction', transactionSchema);
