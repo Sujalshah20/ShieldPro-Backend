@@ -19,11 +19,16 @@ const createPolicy = asyncHandler(async (req, res) => {
     res.status(201).json(policy);
 });
 
-// @desc    Get all policies for logged in user
+// @desc    Get all policies
 // @route   GET /api/policies
 // @access  Private
 const getPolicies = asyncHandler(async (req, res) => {
-    const policies = await Policy.find({ user: req.user._id });
+    let policies;
+    if (req.user.role === 'admin') {
+        policies = await Policy.find({}).populate('user', 'name email');
+    } else {
+        policies = await Policy.find({ user: req.user._id });
+    }
     res.json(policies);
 });
 
@@ -49,9 +54,43 @@ const getAvailablePolicies = asyncHandler(async (req, res) => {
     res.json(policies);
 });
 
+// @desc    Update policy status
+// @route   PUT /api/policies/:id/status
+// @access  Private/Admin
+const updatePolicyStatus = asyncHandler(async (req, res) => {
+    const { status } = req.body;
+    const policy = await Policy.findById(req.params.id);
+
+    if (!policy) {
+        res.status(404);
+        throw new Error('Policy not found');
+    }
+
+    policy.status = status;
+    const updatedPolicy = await policy.save();
+    res.json(updatedPolicy);
+});
+
+// @desc    Delete policy
+// @route   DELETE /api/policies/:id
+// @access  Private/Admin
+const deletePolicy = asyncHandler(async (req, res) => {
+    const policy = await Policy.findById(req.params.id);
+
+    if (!policy) {
+        res.status(404);
+        throw new Error('Policy not found');
+    }
+
+    await policy.deleteOne();
+    res.json({ message: 'Policy removed' });
+});
+
 module.exports = {
     createPolicy,
     getPolicies,
     getPolicyById,
-    getAvailablePolicies
+    getAvailablePolicies,
+    updatePolicyStatus,
+    deletePolicy
 };

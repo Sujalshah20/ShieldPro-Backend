@@ -30,7 +30,7 @@ const policySchema = mongoose.Schema({
     status: {
         type: String,
         required: true,
-        enum: ['active', 'pending', 'expired'],
+        enum: ['active', 'pending', 'expired', 'inactive'],
         default: 'active'
     }
 }, {
