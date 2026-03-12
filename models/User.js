@@ -20,9 +20,27 @@ const userSchema = mongoose.Schema({
         enum: ['admin', 'agent', 'customer'],
         default: 'customer'
     },
-    // Optional fields for profile
-    phone: String,
-    address: String
+    phone: {
+        type: String,
+        required: [true, 'Please add a phone number']
+    },
+    dob: {
+        type: Date,
+        required: [true, 'Please add a date of birth']
+    },
+    gender: {
+        type: String,
+        enum: ['Male', 'Female', 'Other'],
+        required: [true, 'Please select gender']
+    },
+    address: {
+        type: String,
+        required: [true, 'Please add an address']
+    },
+    isVerified: {
+        type: Boolean,
+        default: false
+    }
 }, {
     timestamps: true
 });

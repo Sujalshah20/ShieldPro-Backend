@@ -13,9 +13,9 @@ const generateToken = (id) => {
 // @route   POST /api/auth/register
 // @access  Public
 const registerUser = asyncHandler(async (req, res) => {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, phone, dob, gender, address } = req.body;
 
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !phone || !dob || !gender || !address) {
         res.status(400);
         throw new Error('Please add all fields');
     }
@@ -28,12 +28,16 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new Error('User already exists');
     }
 
-    // Create user
+    // Create user (Public registration is always 'customer')
     const user = await User.create({
         name,
         email,
         password,
-        role
+        phone,
+        dob,
+        gender,
+        address,
+        role: 'customer' // Secure: No one can register as admin or agent publicly
     });
 
     if (user) {
@@ -73,7 +77,26 @@ const loginUser = asyncHandler(async (req, res) => {
     }
 });
 
+// @desc    Forgot Password placeholder
+// @route   POST /api/auth/forgot-password
+// @access  Public
+const forgotPassword = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+    // Logically: Find user, generate reset token, send email
+    res.json({ message: `Password reset link sent to ${email}` });
+});
+
+// @desc    Verify Email placeholder
+// @route   GET /api/auth/verify/:token
+// @access  Public
+const verifyEmail = asyncHandler(async (req, res) => {
+    // Logically: Find user by token, set isVerified to true
+    res.json({ message: 'Email verified successfully' });
+});
+
 module.exports = {
     registerUser,
-    loginUser
+    loginUser,
+    forgotPassword,
+    verifyEmail
 };
