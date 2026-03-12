@@ -11,6 +11,18 @@ const applicationSchema = mongoose.Schema({
         required: true,
         ref: 'Policy'
     },
+    agent: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    internalRemarks: {
+        type: String,
+        default: ''
+    },
+    isFlagged: {
+        type: Boolean,
+        default: false
+    },
     status: {
         type: String,
         required: true,

@@ -3,12 +3,14 @@ const Transaction = require('../models/Transaction');
 const UserPolicy = require('../models/UserPolicy');
 const Policy = require('../models/Policy');
 const PolicyApplication = require('../models/PolicyApplication');
+const Commission = require('../models/Commission');
+const User = require('../models/User');
 
 // @desc    Process a mock payment
 // @route   POST /api/transactions/process
 // @access  Private
 const processPayment = asyncHandler(async (req, res) => {
-    const { policyId, applicationId, amount, paymentMethod, cardDetails } = req.body;
+    const { policyId, applicationId, amount, paymentMethod } = req.body;
 
     const policy = await Policy.findById(policyId);
     if (!policy) {
@@ -30,9 +32,37 @@ const processPayment = asyncHandler(async (req, res) => {
         status: 'Success' // Mocking success
     });
 
-    // If there's an application, mark it as Paid
+    // Handle Application and Agent linkage
+    let agentId = null;
     if (applicationId) {
-        await PolicyApplication.findByIdAndUpdate(applicationId, { status: 'Paid' });
+        const application = await PolicyApplication.findById(applicationId);
+        if (application) {
+            agentId = application.agent;
+            application.status = 'Paid';
+            await application.save();
+        }
+    }
+
+    // If no agent from application, check if user has an assigned agent
+    if (!agentId && req.user.assignedAgent) {
+        agentId = req.user.assignedAgent;
+    }
+
+    // Calculate Commission if agent exists
+    if (agentId) {
+        const agent = await User.findById(agentId);
+        if (agent && agent.role === 'agent') {
+            const commissionAmount = (amount * (agent.commissionRate || 10)) / 100;
+            
+            await Commission.create({
+                agent: agentId,
+                customer: req.user._id,
+                policy: policyId,
+                transaction: transaction._id,
+                amount: commissionAmount,
+                status: 'Pending'
+            });
+        }
     }
 
     // Create the UserPolicy automatically upon successful payment
@@ -42,6 +72,7 @@ const processPayment = asyncHandler(async (req, res) => {
     const userPolicy = await UserPolicy.create({
         user: req.user._id,
         policy: policyId,
+        agent: agentId,
         policyNumber: 'SP-' + Math.floor(100000 + Math.random() * 900000),
         startDate: new Date(),
         endDate,

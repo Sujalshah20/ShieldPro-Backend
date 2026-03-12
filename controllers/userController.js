@@ -25,18 +25,14 @@ const updateProfile = asyncHandler(async (req, res) => {
         user.address = req.body.address || user.address;
         user.dob = req.body.dob || user.dob;
         user.gender = req.body.gender || user.gender;
+        user.nationalId = req.body.nationalId || user.nationalId;
+        user.nominee = req.body.nominee || user.nominee;
+        user.employment = req.body.employment || user.employment;
+        user.bankDetails = req.body.bankDetails || user.bankDetails;
+        user.profilePic = req.body.profilePic || user.profilePic;
 
         const updated = await user.save();
-        res.json({
-            _id: updated._id,
-            name: updated.name,
-            email: updated.email,
-            phone: updated.phone,
-            address: updated.address,
-            dob: updated.dob,
-            gender: updated.gender,
-            role: updated.role
-        });
+        res.json(updated);
     } else {
         res.status(404);
         throw new Error('User not found');

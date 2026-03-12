@@ -22,7 +22,7 @@ const claimSchema = mongoose.Schema({
     status: {
         type: String,
         required: true,
-        enum: ['Pending', 'Approved', 'Rejected'],
+        enum: ['Pending', 'Investigation', 'Approved', 'Rejected'],
         default: 'Pending'
     },
     claimDate: {

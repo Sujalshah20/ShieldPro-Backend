@@ -62,6 +62,15 @@ const userSchema = mongoose.Schema({
         accountNumber: String,
         ifscCode: String,
         bankName: String
+    },
+    // Agent Specific Fields
+    assignedAgent: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    commissionRate: {
+        type: Number,
+        default: 10 // Percentage
     }
 }, {
     timestamps: true

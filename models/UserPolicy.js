@@ -11,6 +11,10 @@ const userPolicySchema = mongoose.Schema({
         required: true,
         ref: 'Policy'
     },
+    agent: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
     policyNumber: {
         type: String,
         required: true,
