@@ -5,6 +5,7 @@ const Policy = require('../models/Policy');
 const PolicyApplication = require('../models/PolicyApplication');
 const Commission = require('../models/Commission');
 const User = require('../models/User');
+const sendEmail = require('../utils/sendEmail');
 
 // @desc    Process a mock payment
 // @route   POST /api/transactions/process
@@ -62,6 +63,22 @@ const processPayment = asyncHandler(async (req, res) => {
                 amount: commissionAmount,
                 status: 'Pending'
             });
+
+            // Notify agent of commission
+            sendEmail({
+                to: agent.email,
+                subject: '💰 Commission Earned — ShieldPro',
+                html: `<div style="font-family:sans-serif;max-width:600px;margin:auto;padding:24px;background:#0a0a0f;color:#fff;border-radius:16px;">
+                    <h2 style="color:#f59e0b;">Commission Alert! 🎉</h2>
+                    <p>Hi ${agent.name}, you've earned a commission of <strong>₹${commissionAmount}</strong> from the sale of <strong>${policy.policyName}</strong> to ${req.user.name}.</p>
+                    <p>The amount has been added to your pending commissions.</p>
+                </div>`
+            }, {
+                userId: agentId,
+                title: 'New Commission Earned',
+                message: `You earned ₹${commissionAmount} for the sale of ${policy.policyName}.`,
+                type: 'success'
+            });
         }
     }
 
@@ -84,7 +101,28 @@ const processPayment = asyncHandler(async (req, res) => {
         transaction,
         userPolicy
     });
+
+    // Notify customer on successful payment
+    const frontendUrl = process.env.FRONTEND_URL || 'https://shield-pro-frontend.vercel.app';
+    sendEmail({
+        to: req.user.email,
+        subject: '💳 Payment Successful — ShieldPro',
+        html: `<div style="font-family:sans-serif;max-width:600px;margin:auto;padding:24px;background:#0a0a0f;color:#fff;border-radius:16px;">
+            <h2 style="color:#22c55e;">Payment Received! 🎉</h2>
+            <p>Hi ${req.user.name}, your payment of <strong>₹${amount}</strong> for <strong>${policy.policyName}</strong> was successful.</p>
+            <p><strong>Transaction ID:</strong> ${transactionId}</p>
+            <p><strong>Policy Number:</strong> ${userPolicy.policyNumber}</p>
+            <p>Your protection is now active. You can download your policy document in the dashboard.</p>
+            <a href="${frontendUrl}/customer/policies" style="display:inline-block;margin-top:16px;padding:12px 28px;background:#22c55e;color:#000;border-radius:8px;font-weight:bold;text-decoration:none;">View My Policy →</a>
+        </div>`
+    }, {
+        userId: req.user._id,
+        title: 'Payment Successful',
+        message: `Your payment for ${policy.policyName} has been processed. Policy ${userPolicy.policyNumber} is active.`,
+        type: 'success'
+    });
 });
+
 
 // @desc    Get all transactions (Admin only)
 // @route   GET /api/transactions

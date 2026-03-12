@@ -1,6 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const Claim = require('../models/Claim');
 const UserPolicy = require('../models/UserPolicy');
+const sendEmail = require('../utils/sendEmail');
 
 // @desc    File a claim
 // @route   POST /api/claims
@@ -8,7 +9,7 @@ const UserPolicy = require('../models/UserPolicy');
 const fileClaim = asyncHandler(async (req, res) => {
     const { userPolicyId, amount, description } = req.body;
 
-    const userPolicy = await UserPolicy.findById(userPolicyId);
+    const userPolicy = await UserPolicy.findById(userPolicyId).populate('policy');
     if (!userPolicy) {
         res.status(404);
         throw new Error('User Policy not found');
@@ -29,6 +30,24 @@ const fileClaim = asyncHandler(async (req, res) => {
             url: `/uploads/${file.filename}`,
             name: file.originalname
         })) : []
+    });
+
+    // Notify user of claim filing
+    sendEmail({
+        to: req.user.email,
+        subject: '📑 Claim Filed — ShieldPro',
+        html: `<div style="font-family:sans-serif;max-width:600px;margin:auto;padding:24px;background:#0a0a0f;color:#fff;border-radius:16px;">
+            <h2 style="color:#f59e0b;">Claim Received</h2>
+            <p>Hi ${req.user.name}, we have received your claim for <strong>${userPolicy.policy?.policyName || 'your policy'}</strong>.</p>
+            <p><strong>Claim ID:</strong> ${claim._id}</p>
+            <p><strong>Amount:</strong> ₹${amount}</p>
+            <p>Our adjusters will review the evidence and get back to you within 3-5 business days.</p>
+        </div>`
+    }, {
+        userId: req.user._id,
+        title: 'Claim Submitted',
+        message: `Your claim for ₹${amount} is currently under investigation.`,
+        type: 'info'
     });
 
     res.status(201).json(claim);
@@ -61,7 +80,12 @@ const getAllClaims = asyncHandler(async (req, res) => {
 const updateClaimStatus = asyncHandler(async (req, res) => {
     const { status } = req.body;
 
-    const claim = await Claim.findById(req.params.id);
+    const claim = await Claim.findById(req.params.id)
+        .populate('user')
+        .populate({
+            path: 'userPolicy',
+            populate: { path: 'policy' }
+        });
 
     if (!claim) {
         res.status(404);
@@ -70,6 +94,26 @@ const updateClaimStatus = asyncHandler(async (req, res) => {
 
     claim.status = status;
     const updatedClaim = await claim.save();
+
+    // Notify customer of status change
+    const policyName = claim.userPolicy?.policy?.policyName || 'your policy';
+    const variant = status === 'Approved' ? 'success' : status === 'Rejected' ? 'error' : 'info';
+    
+    sendEmail({
+        to: claim.user.email,
+        subject: `📑 Claim Update: ${status} — ShieldPro`,
+        html: `<div style="font-family:sans-serif;max-width:600px;margin:auto;padding:24px;background:#0a0a0f;color:#fff;border-radius:16px;">
+            <h2 style="color:${status === 'Approved' ? '#22c55e' : '#ef4444'};">Claim ${status}</h2>
+            <p>Hi ${claim.user.name}, the status of your claim for <strong>${policyName}</strong> has been updated to <strong>${status}</strong>.</p>
+            <p><strong>Claim ID:</strong> ${claim._id}</p>
+            ${status === 'Approved' ? `<p>The settled amount of <strong>₹${claim.amount}</strong> will be credited to your linked bank account within 48 hours.</p>` : '<p>Please check your dashboard for details or contact support if you have questions.</p>'}
+        </div>`
+    }, {
+        userId: claim.user._id,
+        title: `Claim ${status}`,
+        message: `Your claim for ${policyName} has been ${status.toLowerCase()}.`,
+        type: variant
+    });
 
     res.json(updatedClaim);
 });

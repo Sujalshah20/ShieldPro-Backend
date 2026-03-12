@@ -84,56 +84,6 @@ const updateApplicationStatus = asyncHandler(async (req, res) => {
     if (rejectionReason) application.rejectionReason = rejectionReason;
     const updatedApplication = await application.save();
 
-    // If status is Approved, create UserPolicy and Commission
-    if (status === 'Approved' && application.policy) {
-        // Create active user policy
-        const endDate = new Date();
-        endDate.setFullYear(endDate.getFullYear() + (application.policy.durationYears || 1));
-
-        await UserPolicy.create({
-            user: application.user._id,
-            policy: application.policy._id,
-            agent: application.agent || application.user.assignedAgent,
-            policyNumber: `POL-${Math.floor(100000 + Math.random() * 900000)}`,
-            startDate: new Date(),
-            endDate: endDate,
-            status: 'Active'
-        });
-
-        // Determine the agent for commission
-        const agentId = application.agent || application.user.assignedAgent;
-        if (agentId) {
-            const agent = await User.findById(agentId);
-            if (agent && agent.role === 'agent') {
-                const commissionRate = agent.commissionRate || 10;
-                const commissionAmount = (application.policy.premiumAmount * commissionRate) / 100;
-
-                await Commission.create({
-                    agent: agentId,
-                    customer: application.user._id,
-                    policy: application.policy._id,
-                    amount: commissionAmount,
-                    status: 'Pending'
-                });
-
-                // Notify agent of commission earned
-                sendEmail({
-                    to: agent.email,
-                    subject: '💰 Commission Earned — ShieldPro',
-                    html: `<div style="font-family:sans-serif;max-width:600px;margin:auto;padding:24px;background:#0a0a0f;color:#fff;border-radius:16px;">
-                        <h2 style="color:#f59e0b;">Commission Earned! 🎉</h2>
-                        <p>Hi ${agent.name}, a new commission of <strong>₹${commissionAmount}</strong> has been credited for the sale of <strong>${application.policy.policyName}</strong>.</p>
-                    </div>`
-                }, {
-                    userId: agentId,
-                    title: 'Commission Earned',
-                    message: `You earned ₹${commissionAmount} commission for selling ${application.policy.policyName}.`,
-                    type: 'success'
-                });
-            }
-        }
-    }
-
     // Notify customer based on new status
     const frontendUrl = process.env.FRONTEND_URL || 'https://shield-pro-frontend.vercel.app';
     const customerEmail = application.user?.email;
@@ -147,13 +97,13 @@ const updateApplicationStatus = asyncHandler(async (req, res) => {
             html: `<div style="font-family:sans-serif;max-width:600px;margin:auto;padding:24px;background:#0a0a0f;color:#fff;border-radius:16px;">
                 <h2 style="color:#22c55e;">Congratulations, ${customerName}! 🎉</h2>
                 <p>Your application for <strong>${policyName}</strong> has been <strong>approved</strong>!</p>
-                <p>Your policy is now active. Please log in to view your policy details and download your policy document.</p>
-                <a href="${frontendUrl}/customer/policies" style="display:inline-block;margin-top:16px;padding:12px 28px;background:#22c55e;color:#000;border-radius:8px;font-weight:bold;text-decoration:none;">View My Policy →</a>
+                <p>To activate your protection, please complete the payment in your dashboard.</p>
+                <a href="${frontendUrl}/customer/applications" style="display:inline-block;margin-top:16px;padding:12px 28px;background:#22c55e;color:#000;border-radius:8px;font-weight:bold;text-decoration:none;">Pay & Activate →</a>
             </div>`
         }, {
             userId: application.user._id,
             title: 'Application Approved!',
-            message: `Your application for ${policyName} has been approved. Your policy is now active.`,
+            message: `Your application for ${policyName} has been approved. Please complete payment to activate.`,
             type: 'success'
         });
     } else if (status === 'Rejected') {
@@ -165,7 +115,7 @@ const updateApplicationStatus = asyncHandler(async (req, res) => {
                 <p>Hi ${customerName}, unfortunately your application for <strong>${policyName}</strong> was not approved at this time.</p>
                 ${rejectionReason ? `<p><strong>Reason:</strong> ${rejectionReason}</p>` : ''}
                 <p>You are welcome to re-apply or explore other plans that may suit you better.</p>
-                <a href="${frontendUrl}/customer" style="display:inline-block;margin-top:16px;padding:12px 28px;background:#f59e0b;color:#000;border-radius:8px;font-weight:bold;text-decoration:none;">Explore Plans →</a>
+                <a href="${frontendUrl}/customer/browse" style="display:inline-block;margin-top:16px;padding:12px 28px;background:#f59e0b;color:#000;border-radius:8px;font-weight:bold;text-decoration:none;">Explore Plans →</a>
             </div>`
         }, {
             userId: application.user._id,
@@ -182,7 +132,7 @@ const updateApplicationStatus = asyncHandler(async (req, res) => {
                 <p>Hi ${customerName}, your application for <strong>${policyName}</strong> requires additional documents or information.</p>
                 ${rejectionReason ? `<p><strong>Notes from Admin:</strong> ${rejectionReason}</p>` : ''}
                 <p>Please log in and update your application at the earliest.</p>
-                <a href="${frontendUrl}/customer" style="display:inline-block;margin-top:16px;padding:12px 28px;background:#f59e0b;color:#000;border-radius:8px;font-weight:bold;text-decoration:none;">Update Application →</a>
+                <a href="${frontendUrl}/customer/profile" style="display:inline-block;margin-top:16px;padding:12px 28px;background:#f59e0b;color:#000;border-radius:8px;font-weight:bold;text-decoration:none;">Update Application →</a>
             </div>`
         }, {
             userId: application.user._id,
