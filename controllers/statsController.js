@@ -54,6 +54,29 @@ const getAdminStats = asyncHandler(async (req, res) => {
         value: monthlyStats[month]
     }));
 
+    // 5. Recent Activity Feed
+    const recentUsers = await User.find().sort({ createdAt: -1 }).limit(3);
+    const recentUserPolicies = await UserPolicy.find().populate('policy user').sort({ createdAt: -1 }).limit(3);
+    const recentClaims = await Claim.find().populate('user').sort({ createdAt: -1 }).limit(3);
+
+    const recentActivities = [
+        ...recentUsers.map(u => ({
+            type: 'new_user',
+            description: `New user registered: ${u.name} (${u.role})`,
+            date: u.createdAt
+        })),
+        ...recentUserPolicies.map(up => ({
+            type: 'new_policy',
+            description: `Policy issued to ${up.user?.name}: ${up.policy?.policyName}`,
+            date: up.createdAt
+        })),
+        ...recentClaims.map(c => ({
+            type: 'new_claim',
+            description: `Claim filed by ${c.user?.name} for ₹${c.amount}`,
+            date: c.createdAt
+        }))
+    ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+
     res.json({
         stats: {
             totalRevenue,
@@ -67,8 +90,7 @@ const getAdminStats = asyncHandler(async (req, res) => {
             claimStatusDistribution,
             performanceData
         },
-        recentUsers: customers.slice(-5).map(u => ({ id: u._id, name: u.name, email: u.email })),
-        recentAgents: agents.slice(-5).map(a => ({ id: a._id, name: a.name, email: a.email }))
+        recentActivities
     });
 });
 

@@ -86,6 +86,17 @@ const processPayment = asyncHandler(async (req, res) => {
     });
 });
 
+// @desc    Get all transactions (Admin only)
+// @route   GET /api/transactions
+// @access  Private/Admin
+const getTransactions = asyncHandler(async (req, res) => {
+    const transactions = await Transaction.find({})
+        .populate('user', 'name email')
+        .populate('policy', 'policyName policyType');
+    res.json(transactions);
+});
+
 module.exports = {
-    processPayment
+    processPayment,
+    getTransactions
 };

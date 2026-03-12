@@ -125,11 +125,36 @@ const toggleApplicationFlag = asyncHandler(async (req, res) => {
     res.json(application);
 });
 
+const Recommendation = require('../models/Recommendation');
+
+// @desc    Recommend a policy to a customer
+// @route   POST /api/agent/recommend
+// @access  Private/Agent
+const recommendPolicy = asyncHandler(async (req, res) => {
+    const { customerId, policyId, message } = req.body;
+
+    const customer = await User.findById(customerId);
+    if (!customer || customer.assignedAgent.toString() !== req.user._id.toString()) {
+        res.status(403);
+        throw new Error('Not authorized to recommend to this customer');
+    }
+
+    const recommendation = await Recommendation.create({
+        agent: req.user._id,
+        customer: customerId,
+        policy: policyId,
+        message: message || `I highly recommend the ${policyId} plan for your needs.`
+    });
+
+    res.status(201).json(recommendation);
+});
+
 module.exports = {
     getAssignedCustomers,
     applyOnBehalf,
     getAgentApplications,
     updateApplicationRemarks,
     getAgentCommissions,
-    toggleApplicationFlag
+    toggleApplicationFlag,
+    recommendPolicy
 };

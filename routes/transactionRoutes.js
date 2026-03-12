@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { processPayment } = require('../controllers/transactionController');
-const { protect } = require('../middleware/authMiddleware');
+const { processPayment, getTransactions } = require('../controllers/transactionController');
+const { protect, authorize } = require('../middleware/authMiddleware');
 
 router.post('/process', protect, processPayment);
+router.get('/', protect, authorize('admin'), getTransactions);
 
 module.exports = router;

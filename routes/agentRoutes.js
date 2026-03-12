@@ -6,7 +6,8 @@ const {
     getAgentApplications, 
     updateApplicationRemarks,
     getAgentCommissions,
-    toggleApplicationFlag
+    toggleApplicationFlag,
+    recommendPolicy
 } = require('../controllers/agentController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
@@ -19,5 +20,6 @@ router.put('/applications/:id/remarks', updateApplicationRemarks);
 router.put('/applications/:id/flag', toggleApplicationFlag);
 router.get('/commissions', getAgentCommissions);
 router.post('/apply-on-behalf', applyOnBehalf);
+router.post('/recommend', recommendPolicy);
 
 module.exports = router;

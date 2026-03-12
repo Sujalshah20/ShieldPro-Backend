@@ -32,6 +32,7 @@ app.use('/api/messages', require('./routes/messageRoutes'));
 app.use('/api/applications', require('./routes/applicationRoutes'));
 // expose user profile endpoints
 app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/agent', require('./routes/agentRoutes'));
 app.use('/api/commissions', require('./routes/commissionRoutes'));
 

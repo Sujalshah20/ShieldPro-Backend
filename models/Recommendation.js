@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const commissionSchema = mongoose.Schema({
+const recommendationSchema = mongoose.Schema({
     agent: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
@@ -16,22 +16,17 @@ const commissionSchema = mongoose.Schema({
         ref: 'Policy',
         required: true
     },
-    transaction: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Transaction',
-        required: false
-    },
-    amount: {
-        type: Number,
-        required: true
+    message: {
+        type: String,
+        default: 'I highly recommend this policy based on your profile.'
     },
     status: {
         type: String,
-        enum: ['Pending', 'Paid'],
+        enum: ['Pending', 'Accepted', 'Dismissed'],
         default: 'Pending'
     }
 }, {
     timestamps: true
 });
 
-module.exports = mongoose.model('Commission', commissionSchema);
+module.exports = mongoose.model('Recommendation', recommendationSchema);
