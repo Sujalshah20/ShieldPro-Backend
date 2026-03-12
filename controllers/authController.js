@@ -3,8 +3,8 @@ const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
 
 // Generate JWT
-const generateToken = (id) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET, {
+const generateToken = (id, role) => {
+    return jwt.sign({ id, role }, process.env.JWT_SECRET, {
         expiresIn: '30d',
     });
 };
@@ -46,7 +46,7 @@ const registerUser = asyncHandler(async (req, res) => {
             name: user.name,
             email: user.email,
             role: user.role,
-            token: generateToken(user._id)
+            token: generateToken(user._id, user.role)
         });
     } else {
         res.status(400);
@@ -63,13 +63,18 @@ const loginUser = asyncHandler(async (req, res) => {
     // Check for user email
     const user = await User.findOne({ email });
 
+    if (!user) {
+        res.status(404);
+        throw new Error('User not found');
+    }
+
     if (user && (await user.matchPassword(password))) {
         res.json({
             _id: user.id,
             name: user.name,
             email: user.email,
             role: user.role,
-            token: generateToken(user._id)
+            token: generateToken(user._id, user.role)
         });
     } else {
         res.status(401);
