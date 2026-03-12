@@ -35,6 +35,7 @@ app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/agent', require('./routes/agentRoutes'));
 app.use('/api/commissions', require('./routes/commissionRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
 
 const { errorHandler, notFound } = require('./middleware/errorMiddleware');
 

@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { 
     getAgents, createAgent, updateAgentStatus, 
-    getCustomers, reassignAgent, getInsights 
+    getCustomers, reassignAgent, getInsights,
+    exportTransactions, exportCommissions
 } = require('../controllers/adminController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 

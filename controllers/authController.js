@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
+const sendEmail = require('../utils/sendEmail');
 
 // Generate JWT
 const generateToken = (id, role) => {
@@ -41,6 +42,29 @@ const registerUser = asyncHandler(async (req, res) => {
     });
 
     if (user) {
+        // Send Welcome Email (non-blocking)
+        sendEmail({
+            to: user.email,
+            subject: '🛡️ Welcome to ShieldPro Insurance!',
+            html: `
+                <div style="font-family:sans-serif;max-width:600px;margin:auto;padding:24px;background:#0a0a0f;color:#fff;border-radius:16px;">
+                    <h2 style="color:#f59e0b;">Welcome, ${user.name}! 👋</h2>
+                    <p>We're thrilled to have you as part of the ShieldPro family. Your account has been created successfully.</p>
+                    <p>You can now explore insurance plans tailored for you, apply for coverage, and manage everything from your personal dashboard.</p>
+                    <a href="${process.env.FRONTEND_URL || 'https://shield-pro-frontend.vercel.app'}/login" 
+                       style="display:inline-block;margin-top:16px;padding:12px 28px;background:#f59e0b;color:#000;border-radius:8px;font-weight:bold;text-decoration:none;">
+                        Access My Dashboard →
+                    </a>
+                    <p style="margin-top:24px;font-size:12px;opacity:0.5;">ShieldPro Insurance · Protecting what matters most.</p>
+                </div>
+            `
+        }, {
+            userId: user._id,
+            title: 'Welcome to ShieldPro!',
+            message: `Hi ${user.name}, your account has been created successfully. Explore your dashboard to get started.`,
+            type: 'success'
+        });
+
         res.status(201).json({
             _id: user.id,
             name: user.name,
