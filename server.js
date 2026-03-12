@@ -29,6 +29,7 @@ app.use('/api/claims', require('./routes/claimRoutes'));
 app.use('/api/stats', require('./routes/statsRoutes'));
 app.use('/api/transactions', require('./routes/transactionRoutes'));
 app.use('/api/messages', require('./routes/messageRoutes'));
+app.use('/api/applications', require('./routes/applicationRoutes'));
 // expose user profile endpoints
 app.use('/api/users', require('./routes/userRoutes'));
 

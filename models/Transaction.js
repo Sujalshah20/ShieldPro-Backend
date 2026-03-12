@@ -11,6 +11,10 @@ const transactionSchema = mongoose.Schema({
         required: true,
         ref: 'Policy'
     },
+    application: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'PolicyApplication'
+    },
     amount: {
         type: Number,
         required: true

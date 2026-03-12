@@ -2,12 +2,13 @@ const asyncHandler = require('express-async-handler');
 const Transaction = require('../models/Transaction');
 const UserPolicy = require('../models/UserPolicy');
 const Policy = require('../models/Policy');
+const PolicyApplication = require('../models/PolicyApplication');
 
 // @desc    Process a mock payment
 // @route   POST /api/transactions/process
 // @access  Private
 const processPayment = asyncHandler(async (req, res) => {
-    const { policyId, amount, paymentMethod, cardDetails } = req.body;
+    const { policyId, applicationId, amount, paymentMethod, cardDetails } = req.body;
 
     const policy = await Policy.findById(policyId);
     if (!policy) {
@@ -22,11 +23,17 @@ const processPayment = asyncHandler(async (req, res) => {
     const transaction = await Transaction.create({
         user: req.user._id,
         policy: policyId,
+        application: applicationId,
         amount,
         transactionId,
         paymentMethod: paymentMethod || 'Credit Card',
         status: 'Success' // Mocking success
     });
+
+    // If there's an application, mark it as Paid
+    if (applicationId) {
+        await PolicyApplication.findByIdAndUpdate(applicationId, { status: 'Paid' });
+    }
 
     // Create the UserPolicy automatically upon successful payment
     const endDate = new Date();

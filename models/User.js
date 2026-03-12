@@ -40,6 +40,28 @@ const userSchema = mongoose.Schema({
     isVerified: {
         type: Boolean,
         default: false
+    },
+    profilePic: String,
+    nationalId: {
+        type: String,
+        unique: true,
+        sparse: true
+    },
+    nominee: {
+        name: String,
+        relationship: String,
+        phone: String
+    },
+    employment: {
+        occupation: String,
+        annualIncome: Number,
+        employerName: String
+    },
+    bankDetails: {
+        accountName: String,
+        accountNumber: String,
+        ifscCode: String,
+        bankName: String
     }
 }, {
     timestamps: true
