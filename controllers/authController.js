@@ -14,7 +14,7 @@ const generateToken = (id, role) => {
 // @route   POST /api/auth/register
 // @access  Public
 const registerUser = asyncHandler(async (req, res) => {
-    const { name, email, password, phone, dob, gender, address } = req.body;
+    const { name, email, password, phone, dob, gender, address, nationalId } = req.body;
 
     if (!name || !email || !password || !phone || !dob || !gender || !address) {
         res.status(400);
@@ -38,6 +38,7 @@ const registerUser = asyncHandler(async (req, res) => {
         dob,
         gender,
         address,
+        nationalId,
         role: 'customer' // Secure: No one can register as admin or agent publicly
     });
 
