@@ -2,6 +2,10 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
+const helmet = require('helmet');
+const mongoSanitize = require('express-mongo-sanitize');
+const xss = require('xss-clean');
+const cookieParser = require('cookie-parser');
 
 // Load env vars
 dotenv.config();
@@ -9,14 +13,18 @@ dotenv.config();
 const app = express();
 
 // Middleware
+app.use(helmet());
 app.use(cors({
     origin: ['https://shield-pro-frontend.vercel.app', 'http://localhost:5173'],
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
+app.use(mongoSanitize());
+app.use(xss());
 
 // Static folder for uploads
 app.use('/uploads', express.static('uploads'));
