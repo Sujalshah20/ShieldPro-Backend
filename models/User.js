@@ -25,17 +25,14 @@ const userSchema = mongoose.Schema({
         required: [true, 'Please add a phone number']
     },
     dob: {
-        type: Date,
-        required: [true, 'Please add a date of birth']
+        type: Date
     },
     gender: {
         type: String,
-        enum: ['Male', 'Female', 'Other'],
-        required: [true, 'Please select gender']
+        enum: ['Male', 'Female', 'Other']
     },
     address: {
-        type: String,
-        required: [true, 'Please add an address']
+        type: String
     },
     isVerified: {
         type: Boolean,
@@ -76,7 +73,16 @@ const userSchema = mongoose.Schema({
     commissionRate: {
         type: Number,
         default: 10 // Percentage
-    }
+    },
+    resetPasswordToken: String,
+    resetPasswordExpire: Date,
+    loginAttempts: {
+        type: Number,
+        default: 0
+    },
+    lockUntil: Number,
+    verificationToken: String,
+    verificationTokenExpire: Date
 }, {
     timestamps: true
 });

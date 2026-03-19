@@ -134,7 +134,17 @@ const getTransactions = asyncHandler(async (req, res) => {
     res.json(transactions);
 });
 
+// @desc    Get user's own transactions
+// @route   GET /api/transactions/my
+// @access  Private
+const getMyTransactions = asyncHandler(async (req, res) => {
+    const transactions = await Transaction.find({ user: req.user._id })
+        .populate('policy', 'policyName policyType');
+    res.json(transactions);
+});
+
 module.exports = {
     processPayment,
-    getTransactions
+    getTransactions,
+    getMyTransactions
 };
