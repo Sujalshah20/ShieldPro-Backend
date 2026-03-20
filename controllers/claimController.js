@@ -57,7 +57,15 @@ const fileClaim = asyncHandler(async (req, res) => {
 // @route   GET /api/claims
 // @access  Private
 const getMyClaims = asyncHandler(async (req, res) => {
-    const claims = await Claim.find({ user: req.user._id }).populate('userPolicy');
+    const claims = await Claim.find({ user: req.user._id })
+        .populate({
+            path: 'userPolicy',
+            populate: [
+                { path: 'policy' },
+                { path: 'agent', select: 'name email role' }
+            ]
+        })
+        .populate('comments.user', 'name role');
     res.json(claims);
 });
 
@@ -78,8 +86,12 @@ const getAllClaims = asyncHandler(async (req, res) => {
         .populate('user', 'name email')
         .populate({
             path: 'userPolicy',
-            populate: { path: 'policy' }
-        });
+            populate: [
+                { path: 'policy' },
+                { path: 'agent', select: 'name email role' }
+            ]
+        })
+        .populate('comments.user', 'name role');
     res.json(claims);
 });
 
@@ -101,7 +113,20 @@ const updateClaimStatus = asyncHandler(async (req, res) => {
         throw new Error('Claim not found');
     }
 
+    // Agent authorization check
+    if (req.user.role === 'agent' && claim.userPolicy?.agent?.toString() !== req.user._id.toString()) {
+        res.status(403);
+        throw new Error('Not authorized: You can only update claims for policies you manage.');
+    }
+
     claim.status = status;
+    
+    // Add an automated comment about the status change
+    claim.comments.push({
+        user: req.user._id,
+        text: `Claim status updated to ${status} by ${req.user.name}`
+    });
+
     const updatedClaim = await claim.save();
 
     // Notify customer of status change

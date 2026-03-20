@@ -8,7 +8,11 @@ const xss = require('xss-clean');
 const cookieParser = require('cookie-parser');
 
 // Load env vars
-dotenv.config();
+const fs = require('fs');
+const path = require('path');
+
+const envPath = fs.existsSync('.env') ? '.env' : path.join(__dirname, '.env');
+dotenv.config({ path: envPath });
 
 const app = express();
 

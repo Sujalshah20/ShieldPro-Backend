@@ -87,7 +87,16 @@ const userSchema = mongoose.Schema({
     },
     lockUntil: Number,
     verificationToken: String,
-    verificationTokenExpire: Date
+    verificationTokenExpire: Date,
+    documents: [{
+        name: String,
+        url: String,
+        type: String, // 'Aadhaar', 'PAN', 'Other'
+        uploadedAt: {
+            type: Date,
+            default: Date.now
+        }
+    }]
 }, {
     timestamps: true
 });

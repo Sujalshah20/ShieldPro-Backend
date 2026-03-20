@@ -6,12 +6,13 @@ const {
     exportTransactions, exportCommissions
 } = require('../controllers/adminController');
 const { protect, authorize } = require('../middleware/authMiddleware');
+const { statusValidation } = require('../middleware/validationMiddleware');
 
 router.use(protect);
 router.use(authorize('admin'));
 
 router.route('/agents').get(getAgents).post(createAgent);
-router.route('/agents/:id/status').put(updateAgentStatus);
+router.route('/agents/:id/status').put(statusValidation, updateAgentStatus);
 router.route('/customers').get(getCustomers);
 router.route('/customers/:id/reassign').put(reassignAgent);
 router.route('/insights').get(getInsights);

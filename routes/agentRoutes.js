@@ -10,16 +10,17 @@ const {
     recommendPolicy
 } = require('../controllers/agentController');
 const { protect, authorize } = require('../middleware/authMiddleware');
+const { applicationValidation, statusValidation } = require('../middleware/validationMiddleware');
 
 router.use(protect);
 router.use(authorize('agent'));
 
 router.get('/customers', getAssignedCustomers);
 router.get('/applications', getAgentApplications);
-router.put('/applications/:id/remarks', updateApplicationRemarks);
-router.put('/applications/:id/flag', toggleApplicationFlag);
+router.put('/applications/:id/remarks', statusValidation, updateApplicationRemarks);
+router.put('/applications/:id/flag', statusValidation, toggleApplicationFlag);
 router.get('/commissions', getAgentCommissions);
-router.post('/apply-on-behalf', applyOnBehalf);
+router.post('/apply-on-behalf', applicationValidation, applyOnBehalf);
 router.post('/recommend', recommendPolicy);
 
 module.exports = router;
