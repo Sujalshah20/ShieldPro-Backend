@@ -56,16 +56,33 @@ const updateProfile = asyncHandler(async (req, res) => {
         user.email = email.toLowerCase();
     }
 
-    // 2. Update fields
-    user.name = name || user.name;
-    user.phone = phone || user.phone;
-    user.address = address || user.address;
-    user.dob = dob || user.dob;
-    user.gender = gender || user.gender;
-    user.nationalId = nationalId || user.nationalId;
-    user.panNumber = panNumber?.toUpperCase() || user.panNumber;
-    user.employment = employment || user.employment;
-    user.profilePic = profilePic || user.profilePic;
+    if (nationalId) {
+        const idExists = await User.findOne({ nationalId, _id: { $ne: user._id } });
+        if (idExists) {
+            res.status(400);
+            throw new Error('This Aadhaar number is already registered.');
+        }
+        user.nationalId = nationalId;
+    }
+
+    if (panNumber) {
+        const panFormatted = panNumber.toUpperCase();
+        const panExists = await User.findOne({ panNumber: panFormatted, _id: { $ne: user._id } });
+        if (panExists) {
+            res.status(400);
+            throw new Error('This PAN number is already registered.');
+        }
+        user.panNumber = panFormatted;
+    }
+
+    // 2. Update other fields
+    user.name = name !== undefined ? name : user.name;
+    user.phone = phone !== undefined ? phone : user.phone;
+    user.address = address !== undefined ? address : user.address;
+    user.dob = dob !== undefined ? dob : user.dob;
+    user.gender = gender !== undefined ? gender : user.gender;
+    user.employment = employment !== undefined ? employment : user.employment;
+    user.profilePic = profilePic !== undefined ? profilePic : user.profilePic;
 
     const updated = await user.save();
     res.json(updated);

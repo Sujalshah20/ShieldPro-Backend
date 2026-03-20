@@ -65,7 +65,16 @@ const getMyClaims = asyncHandler(async (req, res) => {
 // @route   GET /api/claims/all
 // @access  Private/Agent/Admin
 const getAllClaims = asyncHandler(async (req, res) => {
-    const claims = await Claim.find({})
+    let query = {};
+    
+    // If agent, only show claims for policies they managed
+    if (req.user.role === 'agent') {
+        // Find user policies managed by this agent
+        const agentPolicyIds = await UserPolicy.find({ agent: req.user._id }).distinct('_id');
+        query.userPolicy = { $in: agentPolicyIds };
+    }
+
+    const claims = await Claim.find(query)
         .populate('user', 'name email')
         .populate({
             path: 'userPolicy',

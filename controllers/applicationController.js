@@ -56,7 +56,12 @@ const getMyApplications = asyncHandler(async (req, res) => {
 // @route   GET /api/applications
 // @access  Private (Admin/Agent)
 const getAllApplications = asyncHandler(async (req, res) => {
-    const applications = await PolicyApplication.find({})
+    let query = {};
+    if (req.user.role === 'agent') {
+        query.agent = req.user._id;
+    }
+
+    const applications = await PolicyApplication.find(query)
         .populate('user', 'name email')
         .populate('policy', 'policyName policyType');
     res.json(applications);

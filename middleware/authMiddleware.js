@@ -5,16 +5,16 @@ const User = require('../models/User');
 const protect = asyncHandler(async (req, res, next) => {
     let token;
 
-    // Check if token exists in cookies instead of headers
-    if (req.cookies.token && req.cookies.token !== 'none') {
-        token = req.cookies.token;
-    } 
-    // Fallback for postman or old mobile apps
-    else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    // Priority 1: Authorization Header (Bearer Token) - Required for project rules
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
         token = req.headers.authorization.split(' ')[1];
     }
+    // Priority 2: Cookies (Fallback for session persistence if needed)
+    else if (req.cookies.token && req.cookies.token !== 'none') {
+        token = req.cookies.token;
+    }
 
-    if (!token) {
+    if (!token || token === 'undefined' || token === 'null') {
         res.status(401);
         throw new Error('Not authorized to access this route. Please login.');
     }

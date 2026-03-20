@@ -28,6 +28,7 @@ const sendTokenResponse = (user, statusCode, res, rememberMe = false) => {
            name: user.name,
            email: user.email,
            role: user.role,
+           token: token,
            isVerified: user.isVerified
        });
 };

@@ -49,6 +49,11 @@ const userSchema = mongoose.Schema({
         unique: true,
         sparse: true
     },
+    panNumber: {
+        type: String,
+        unique: true,
+        sparse: true
+    },
     nominee: {
         name: String,
         relationship: String,
@@ -95,7 +100,7 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
 // Encrypt password using bcrypt
 userSchema.pre('save', async function (next) {
     if (!this.isModified('password')) {
-        next();
+        return next();
     }
 
     const salt = await bcrypt.genSalt(10);

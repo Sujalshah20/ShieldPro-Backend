@@ -77,20 +77,50 @@ const getAdminStats = asyncHandler(async (req, res) => {
         }))
     ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
 
+    // 6. Top Performing Agents (by policy count and commission)
+    const topAgents = await Promise.all(agents.map(async (agent) => {
+        const policyCount = await UserPolicy.countDocuments({ agent: agent._id, status: 'Active' });
+        const commissions = await Commission.find({ agent: agent._id });
+        const totalRev = commissions.reduce((acc, curr) => acc + curr.amount, 0);
+        return {
+            _id: agent._id,
+            name: agent.name,
+            email: agent.email,
+            policiesSold: policyCount,
+            revenue: totalRev,
+            rating: 5 // Default for now
+        };
+    }));
+
+    // Sort by revenue and take top 4
+    const sortedTopAgents = topAgents.sort((a, b) => b.revenue - a.revenue).slice(0, 4);
+
+    // 7. Pending Actions (Wait for approval applications + pending claims)
+    const pendingApps = await PolicyApplication.countDocuments({ status: 'Pending' });
+    const pendingClaimsCount = claims.filter(c => c.status === 'Pending').length;
+
     res.json({
         stats: {
             totalRevenue,
             totalPolicies: policies.length,
             totalCustomers: customers.length,
             totalAgents: agents.length,
-            activePolicies: userPolicies.filter(up => up.status === 'Active').length
+            activePolicies: userPolicies.filter(up => up.status === 'Active').length,
+            pendingActions: pendingApps + pendingClaimsCount
         },
         charts: {
-            policyDistribution,
+            policyDistribution: policyDistribution.map(p => ({
+                ...p,
+                value: Math.round((p.value / (policies.length || 1)) * 100)
+            })),
             claimStatusDistribution,
             performanceData
         },
-        recentActivities
+        recentActivities: recentActivities.map(a => ({
+            ...a,
+            time: a.date // Frontend will format
+        })),
+        topAgents: sortedTopAgents
     });
 });
 
@@ -103,43 +133,76 @@ const getAgentStats = asyncHandler(async (req, res) => {
     // 1. Total assigned customers
     const totalCustomers = await User.countDocuments({ assignedAgent: agentId, role: 'customer' });
 
-    // 2. Pending applications for this agent's customers
-    // Note: This requires customers to be assigned.
-    // Or check applications where agentId matches.
+    // 2. Pending applications linked to this agent
     const pendingApplications = await PolicyApplication.countDocuments({ 
-        $or: [
-            { agent: agentId, status: 'Pending' },
-            { user: { $in: await User.find({ assignedAgent: agentId }).distinct('_id') }, status: 'Pending' }
-        ]
+        agent: agentId, 
+        status: 'Pending' 
     });
 
-    // 3. Approved/Active Policies linked to this agent
-    const activePolicies = await UserPolicy.countDocuments({ agent: agentId, status: 'Active' });
+    // 3. Approved/Active Policies managed by this agent
+    const activePoliciesCount = await UserPolicy.countDocuments({ agent: agentId, status: 'Active' });
 
     // 4. Commission Total
     const commissions = await Commission.find({ agent: agentId });
     const totalCommission = commissions.reduce((acc, curr) => acc + curr.amount, 0);
 
-    // 5. Chart Data: Claim Distribution among this agent's policies
-    // Find all UserPolicies for this agent
+    // 5. Claims to Review (for policies managed by this agent)
     const agentPolicyIds = await UserPolicy.find({ agent: agentId }).distinct('_id');
     const claims = await Claim.find({ userPolicy: { $in: agentPolicyIds } });
+    const claimsToReview = claims.filter(c => c.status === 'Pending').length;
+
+    // 6. Sales Trend (Last 6 months)
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
     
-    const claimStatusDistribution = [
-        { name: 'Pending', value: claims.filter(c => c.status === 'Pending').length },
-        { name: 'Approved', value: claims.filter(c => c.status === 'Approved').length },
-        { name: 'Rejected', value: claims.filter(c => c.status === 'Rejected').length },
-    ];
+    const userPolicies = await UserPolicy.find({ 
+        agent: agentId,
+        createdAt: { $gte: sixMonthsAgo }
+    });
+
+    const monthlyStats = userPolicies.reduce((acc, curr) => {
+        const month = new Date(curr.createdAt).toLocaleString('default', { month: 'short' });
+        acc[month] = (acc[month] || 0) + 1;
+        return acc;
+    }, {});
+
+    const salesTrend = Object.keys(monthlyStats).map(month => ({
+        name: month,
+        value: monthlyStats[month]
+    }));
+
+    // 7. Policy Type Distribution
+    const populatedPolicies = await UserPolicy.find({ agent: agentId }).populate('policy');
+    const typeMap = {};
+    populatedPolicies.forEach(up => {
+        if (up.policy) {
+            typeMap[up.policy.policyType] = (typeMap[up.policy.policyType] || 0) + 1;
+        }
+    });
+    
+    const totalPolicies = populatedPolicies.length || 1;
+    const policyTypeDistribution = Object.keys(typeMap).map(type => ({
+        name: type,
+        value: Math.round((typeMap[type] / totalPolicies) * 100),
+        color: type === 'Health' ? '#1e293b' : type === 'Life' ? '#14b8a6' : type === 'Vehicle' ? '#0ea5e9' : '#94a3b8'
+    }));
 
     res.json({
         stats: {
             assignedCustomers: totalCustomers,
             pendingApplications,
-            activePolicies,
-            totalCommission
+            activePolicies: activePoliciesCount,
+            totalCommission,
+            claimsToReview
         },
         charts: {
-            claimStatusDistribution
+            salesTrend,
+            policyTypeDistribution,
+            claimStatusDistribution: [
+                { name: 'Pending', value: claimsToReview },
+                { name: 'Approved', value: claims.filter(c => c.status === 'Approved').length },
+                { name: 'Rejected', value: claims.filter(c => c.status === 'Rejected').length },
+            ]
         }
     });
 });
