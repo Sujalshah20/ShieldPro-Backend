@@ -3,7 +3,7 @@ const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const { 
     registerUser, loginUser, logoutUser, getMe, oauthLogin, 
-    forgotPassword, verifyEmail, resetPassword 
+    forgotPassword, verifyEmail, resetPassword, verifyOTP
 } = require('../controllers/authController');
 const { validateRegister, validateLogin } = require('../middleware/authValidator');
 const { protect } = require('../middleware/authMiddleware');
@@ -22,6 +22,7 @@ router.post('/logout', protect, logoutUser);
 router.get('/me', protect, getMe);
 router.post('/oauth', oauthLogin);
 router.post('/verify-otp', verifyOTP);
+router.post('/verify_otp', verifyOTP);
 router.post('/forgot-password', forgotPassword);
 router.get('/verify/:token', verifyEmail);
 router.post('/reset-password', resetPassword);
