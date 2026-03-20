@@ -11,7 +11,7 @@ const sendEmail = require('../utils/sendEmail');
 // @route   POST /api/transactions/process
 // @access  Private
 const processPayment = asyncHandler(async (req, res) => {
-    const { policyId, applicationId, amount, paymentMethod } = req.body;
+    const { policyId, applicationId, amount, paymentMethod, cardDetails } = req.body;
 
     const policy = await Policy.findById(policyId);
     if (!policy) {
@@ -22,6 +22,13 @@ const processPayment = asyncHandler(async (req, res) => {
     // Generate a mock transaction ID
     const transactionId = 'TXN-' + Math.random().toString(36).substring(2, 10).toUpperCase();
 
+    // Simulation logic: Cards starting with '4' (Visa) are always successful.
+    // Cards starting with '5' (Mastercard) fail if the last digit is odd.
+    let status = 'Success';
+    if (cardDetails?.number?.startsWith('5') && parseInt(cardDetails.number.slice(-1)) % 2 !== 0) {
+        status = 'Failed';
+    }
+
     // Create the transaction record
     const transaction = await Transaction.create({
         user: req.user._id,
@@ -30,8 +37,17 @@ const processPayment = asyncHandler(async (req, res) => {
         amount,
         transactionId,
         paymentMethod: paymentMethod || 'Credit Card',
-        status: 'Success' // Mocking success
+        status
     });
+
+    if (status === 'Failed') {
+        res.status(400).json({
+            success: false,
+            message: 'Transaction declined by issuer.',
+            transaction
+        });
+        return;
+    }
 
     // Handle Application and Agent linkage
     let agentId = null;
