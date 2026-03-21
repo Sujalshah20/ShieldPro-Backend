@@ -11,20 +11,25 @@ const createTransporter = () => {
         console.warn('⚠️ SMTP credentials missing. Using Ethereal fallback.');
     }
 
-    const port = parseInt(SMTP_PORT, 10) || 587;
+    // Default to 465 for cloud environments if not specified
+    const port = parseInt(SMTP_PORT, 10) || 465;
+    const isSecure = port === 465;
 
     return nodemailer.createTransport({
-        host: SMTP_HOST || 'smtp.ethereal.email',
+        host: SMTP_HOST || 'smtp.gmail.com',
         port: port,
-        secure: port === 465, // true for 465, false for other ports
+        secure: isSecure,
         auth: {
             user: SMTP_USER, 
             pass: SMTP_PASS, 
         },
         tls: {
-            // Do not fail on invalid certs (common in some hosting environments)
-            rejectUnauthorized: false
-        }
+            rejectUnauthorized: false,
+            // Force IPv4 as some cloud providers have issues with IPv6 SMTP
+            minVersion: 'TLSv1.2'
+        },
+        connectionTimeout: 10000, // 10 seconds
+        greetingTimeout: 10000,
     });
 };
 
