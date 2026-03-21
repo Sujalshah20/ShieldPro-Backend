@@ -1,5 +1,9 @@
 const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const Notification = require('../models/Notification');
+
+// Initialize Resend if API key is present
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 // To properly send emails, set up your variables in .env
 // SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, FROM_EMAIL, FROM_NAME
@@ -50,18 +54,40 @@ const createTransporter = () => {
  */
 const sendEmail = async (options, notificationOpts = null) => {
     try {
-        const transporter = createTransporter();
+        const fromEmail = process.env.FROM_EMAIL || 'onboarding@resend.dev';
+        const fromName = process.env.FROM_NAME || 'ShieldPro Insurance';
+        const fromFormat = `"${fromName}" <${fromEmail}>`;
 
-        const mailOptions = {
-            from: `"${process.env.FROM_NAME || 'ShieldPro Insurance'}" <${process.env.FROM_EMAIL || 'noreply@shieldpro.com'}>`,
-            to: options.to,
-            subject: options.subject,
-            text: options.text || options.html.replace(/<[^>]*>?/gm, ''), // Strip html if no text provided
-            html: options.html,
-        };
+        let info;
 
-        const info = await transporter.sendMail(mailOptions);
-        console.log('Message sent: %s', info.messageId);
+        // Use Resend API if configured (Bypasses SMTP port blocking on Render)
+        if (resend) {
+            console.log('Using Resend API for delivery...');
+            const { data, error } = await resend.emails.send({
+                from: fromFormat,
+                to: [options.to],
+                subject: options.subject,
+                html: options.html,
+                text: options.text || options.html.replace(/<[^>]*>?/gm, ''),
+            });
+
+            if (error) throw error;
+            info = { messageId: data.id };
+        } else {
+            // Fallback to SMTP (for local dev)
+            console.log('Using SMTP for delivery...');
+            const transporter = createTransporter();
+            const mailOptions = {
+                from: fromFormat,
+                to: options.to,
+                subject: options.subject,
+                text: options.text || options.html.replace(/<[^>]*>?/gm, ''),
+                html: options.html,
+            };
+            info = await transporter.sendMail(mailOptions);
+        }
+
+        console.log('Message sent: %s', info.messageId || info.id);
 
         // If notification options exist, create an in-app notification as well
         if (notificationOpts && notificationOpts.userId) {
