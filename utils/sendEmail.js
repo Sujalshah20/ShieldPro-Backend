@@ -5,13 +5,19 @@ const Notification = require('../models/Notification');
 // SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, FROM_EMAIL, FROM_NAME
 
 const createTransporter = () => {
+    const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
+    
+    if (!SMTP_USER || !SMTP_PASS) {
+        console.warn('⚠️ SMTP credentials missing. Using Ethereal fallback (may fail in production).');
+    }
+
     return nodemailer.createTransport({
-        host: process.env.SMTP_HOST || 'smtp.ethereal.email',
-        port: process.env.SMTP_PORT || 587,
+        host: SMTP_HOST || 'smtp.ethereal.email',
+        port: SMTP_PORT || 587,
         secure: false, // true for 465, false for other ports
         auth: {
-            user: process.env.SMTP_USER, 
-            pass: process.env.SMTP_PASS, 
+            user: SMTP_USER, 
+            pass: SMTP_PASS, 
         },
     });
 };
