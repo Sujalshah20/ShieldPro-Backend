@@ -25,11 +25,12 @@ const createTransporter = () => {
         },
         tls: {
             rejectUnauthorized: false,
-            // Force IPv4 as some cloud providers have issues with IPv6 SMTP
             minVersion: 'TLSv1.2'
         },
-        connectionTimeout: 10000, // 10 seconds
+        connectionTimeout: 10000, 
         greetingTimeout: 10000,
+        // Force IPv4 to avoid ENETUNREACH issues with IPv6 on some cloud providers
+        family: 4
     });
 };
 
