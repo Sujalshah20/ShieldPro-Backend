@@ -58,9 +58,8 @@ const sendEmail = async (options, notificationOpts = null) => {
         return info;
     } catch (error) {
         console.error('Error sending email:', error);
-        // We don't necessarily want to crash the request if email fails, 
-        // so we log it but don't throw depending on business logic.
-        return null;
+        // Throw error so calling function can handle failure (e.g., rollback database changes)
+        throw new Error(`Email delivery failed: ${error.message}`);
     }
 };
 

@@ -3,6 +3,7 @@ const User = require('../models/User');
 const PolicyApplication = require('../models/PolicyApplication');
 const Commission = require('../models/Commission');
 const Transaction = require('../models/Transaction');
+const Claim = require('../models/Claim');
 const sendEmail = require('../utils/sendEmail');
 
 // @desc    Get all agents with performance stats
@@ -194,6 +195,60 @@ const exportCommissions = asyncHandler(async (req, res) => {
     res.status(200).send(csv);
 });
 
+// @desc    Get all claims (Admin)
+// @route   GET /api/admin/claims
+// @access  Private/Admin
+const getClaims = asyncHandler(async (req, res) => {
+    const claims = await Claim.find()
+        .populate('user', 'name email')
+        .populate({
+            path: 'userPolicy',
+            populate: { path: 'policy', select: 'policyName policyType' }
+        })
+        .sort({ createdAt: -1 });
+    res.json(claims);
+});
+
+// @desc    Get all transactions (Admin)
+// @route   GET /api/admin/transactions
+// @access  Private/Admin
+const getTransactions = asyncHandler(async (req, res) => {
+    const transactions = await Transaction.find()
+        .populate('user', 'name email')
+        .populate('policy', 'policyName')
+        .sort({ createdAt: -1 });
+    res.json(transactions);
+});
+
+// @desc    Get all commissions (Admin)
+// @route   GET /api/admin/commissions
+// @access  Private/Admin
+const getCommissions = asyncHandler(async (req, res) => {
+    const commissions = await Commission.find()
+        .populate('agent', 'name email')
+        .populate('customer', 'name email')
+        .populate('policy', 'policyName')
+        .sort({ createdAt: -1 });
+    res.json(commissions);
+});
+
+// @desc    Update claim status (Admin)
+// @route   PUT /api/admin/claims/:id/status
+// @access  Private/Admin
+const updateClaimStatus = asyncHandler(async (req, res) => {
+    const { status } = req.body;
+    const claim = await Claim.findById(req.params.id);
+
+    if (claim) {
+        claim.status = status;
+        await claim.save();
+        res.json({ message: `Claim status updated to ${status}` });
+    } else {
+        res.status(404);
+        throw new Error('Claim not found');
+    }
+});
+
 module.exports = {
     getAgents,
     createAgent,
@@ -202,5 +257,9 @@ module.exports = {
     reassignAgent,
     getInsights,
     exportTransactions,
-    exportCommissions
+    exportCommissions,
+    getClaims,
+    getTransactions,
+    getCommissions,
+    updateClaimStatus
 };

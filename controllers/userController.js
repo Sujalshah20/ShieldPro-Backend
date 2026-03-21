@@ -5,13 +5,8 @@ const User = require('../models/User');
 // @route   GET /api/users/profile
 // @access  Private
 const getProfile = asyncHandler(async (req, res) => {
-    const user = await User.findById(req.user._id).select('-password');
-    if (user) {
-        res.json(user);
-    } else {
-        res.status(404);
-        throw new Error('User not found');
-    }
+    // req.user is already populated by 'protect' middleware
+    res.json(req.user);
 });
 
 // @desc    Update logged in user profile

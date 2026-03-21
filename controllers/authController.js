@@ -74,11 +74,14 @@ const registerUser = asyncHandler(async (req, res) => {
                     </div>
                 `
             });
+            res.status(201).json({ message: 'Registration successful. OTP sent to email.' });
         } catch (error) {
-            console.error('Email sending failed', error);
+            // If email fails, we should ideally delete the user or mark as needing re-send
+            // For now, we'll throw to let the user know configuration is broken
+            await User.findByIdAndDelete(user._id);
+            res.status(500);
+            throw new Error(`Registration failed: Email service error. ${error.message}`);
         }
-
-        res.status(201).json({ message: 'Registration successful. OTP sent to email.' });
     } else {
         res.status(400);
         throw new Error('Invalid user data error');
@@ -293,11 +296,12 @@ const forgotPassword = asyncHandler(async (req, res) => {
         });
         res.json({ message: 'OTP sent to email' });
     } catch (error) {
+        // Rollback OTP storage if email sending fails
         user.resetPasswordToken = undefined;
         user.resetPasswordExpire = undefined;
         await user.save();
         res.status(500);
-        throw new Error('Email sending failed');
+        throw new Error('Email sending failed. Please check SMTP configuration.');
     }
 });
 
