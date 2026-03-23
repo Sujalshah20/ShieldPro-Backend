@@ -80,6 +80,11 @@ const processPayment = asyncHandler(async (req, res) => {
                 status: 'Pending'
             });
 
+            // Automatically assign this agent to the customer if not already assigned
+            if (!req.user.assignedAgent) {
+                await User.findByIdAndUpdate(req.user._id, { assignedAgent: agentId });
+            }
+
             // Notify agent of commission
             sendEmail({
                 to: agent.email,

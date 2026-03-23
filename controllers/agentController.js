@@ -59,7 +59,10 @@ const getAgentApplications = asyncHandler(async (req, res) => {
             { agent: req.user._id },
             { user: { $in: await User.find({ assignedAgent: req.user._id }).distinct('_id') } }
         ]
-    }).populate('user', 'name email').populate('policy', 'policyName policyType');
+    })
+    .populate('user', 'name email phone')
+    .populate('policy', 'policyName policyType premiumAmount coverageAmount')
+    .sort('-updatedAt');
 
     res.json(applications);
 });
