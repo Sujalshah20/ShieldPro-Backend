@@ -54,27 +54,42 @@ const createTransporter = () => {
  */
 const sendEmail = async (options, notificationOpts = null) => {
     try {
-        const fromEmail = process.env.FROM_EMAIL || 'onboarding@resend.dev';
-        const fromName = process.env.FROM_NAME || 'ShieldPro Insurance';
+        const fromEmail = (process.env.FROM_EMAIL || 'onboarding@resend.dev').trim();
+        const fromName = (process.env.FROM_NAME || 'ShieldPro Insurance').trim();
         const fromFormat = `"${fromName}" <${fromEmail}>`;
 
+        // Safety: If using Resend with a gmail/yahoo/outlook address, it WILL fail 
+        // because Resend requires a verified custom domain for those.
+        // We use a more robust check and trim the email.
+        const isPublicDomain = /@(gmail\.com|yahoo\.com|outlook\.com|hotmail\.com)$/i.test(fromEmail);
+
         let info;
+        let success = false;
 
-        // Use Resend API if configured (Bypasses SMTP port blocking on Render)
-        if (resend) {
-            console.log('Using Resend API for delivery...');
-            const { data, error } = await resend.emails.send({
-                from: fromFormat,
-                to: [options.to],
-                subject: options.subject,
-                html: options.html,
-                text: options.text || options.html.replace(/<[^>]*>?/gm, ''),
-            });
+        // Use Resend API ONLY if configured AND it's not a public domain (Restricted by Resend)
+        // OR if the user is explicitly using the onboarding email for testing.
+        if (resend && (!isPublicDomain || fromEmail === 'onboarding@resend.dev')) {
+            try {
+                console.log('Attempting Resend API delivery...');
+                const { data, error } = await resend.emails.send({
+                    from: fromFormat,
+                    to: [options.to],
+                    subject: options.subject,
+                    html: options.html,
+                    text: options.text || options.html.replace(/<[^>]*>?/gm, ''),
+                });
 
-            if (error) throw error;
-            info = { messageId: data.id };
-        } else {
-            // Fallback to SMTP (for local dev)
+                if (error) throw error;
+                info = { messageId: data.id };
+                success = true;
+                console.log('Resend delivery successful.');
+            } catch (resendError) {
+                console.warn(`Resend failed: ${resendError.message}. Falling back to SMTP...`);
+            }
+        }
+
+        // Fallback to SMTP or use it primarily if Resend is not suitable
+        if (!success) {
             console.log('Using SMTP for delivery...');
             const transporter = createTransporter();
             const mailOptions = {
@@ -84,10 +99,13 @@ const sendEmail = async (options, notificationOpts = null) => {
                 text: options.text || options.html.replace(/<[^>]*>?/gm, ''),
                 html: options.html,
             };
+            
             info = await transporter.sendMail(mailOptions);
+            success = true;
+            console.log('SMTP delivery successful.');
         }
 
-        console.log('Message sent: %s', info.messageId || info.id);
+        console.log('Message sent: %s', info.messageId || info.id || 'N/A');
 
         // If notification options exist, create an in-app notification as well
         if (notificationOpts && notificationOpts.userId) {
@@ -101,7 +119,7 @@ const sendEmail = async (options, notificationOpts = null) => {
 
         return info;
     } catch (error) {
-        console.error('Error sending email:', error);
+        console.error('Final Email Delivery Error:', error);
         // Throw error so calling function can handle failure (e.g., rollback database changes)
         throw new Error(`Email delivery failed: ${error.message}`);
     }
