@@ -12,33 +12,39 @@ const sendEmail = require('../utils/sendEmail');
 // @access  Private
 const processPayment = asyncHandler(async (req, res) => {
     const { policyId, applicationId, amount, paymentMethod, cardDetails } = req.body;
+    console.log(`💳 Processing request for Policy: ${policyId}, Application: ${applicationId}, User: ${req.user?._id}`);
 
     const policy = await Policy.findById(policyId);
     if (!policy) {
+        console.error('❌ Policy not found in DB:', policyId);
         res.status(404);
         throw new Error('Policy not found');
     }
 
     // Generate a mock transaction ID
     const transactionId = 'TXN-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+    console.log(`🔄 Generated Transaction ID: ${transactionId}`);
 
     // Simulation logic: Cards starting with '4' (Visa) are always successful.
     // Cards starting with '5' (Mastercard) fail if the last digit is odd.
     let status = 'Success';
     if (cardDetails?.number?.startsWith('5') && parseInt(cardDetails.number.slice(-1)) % 2 !== 0) {
         status = 'Failed';
+        console.log('⚠️ Mock payment failed validation');
     }
 
     // Create the transaction record
+    console.log('⏳ Creating transaction record...');
     const transaction = await Transaction.create({
         user: req.user._id,
         policy: policyId,
-        application: applicationId,
+        application: applicationId || undefined,
         amount,
         transactionId,
         paymentMethod: paymentMethod || 'Credit Card',
         status
     });
+    console.log('✅ Transaction created:', transaction._id);
 
     if (status === 'Failed') {
         res.status(400).json({
@@ -52,21 +58,27 @@ const processPayment = asyncHandler(async (req, res) => {
     // Handle Application and Agent linkage
     let agentId = null;
     if (applicationId) {
+        console.log(`⏳ Finding Application: ${applicationId}`);
         const application = await PolicyApplication.findById(applicationId);
         if (application) {
             agentId = application.agent;
             application.status = 'Paid';
             await application.save();
+            console.log('✅ Application status updated to Paid');
+        } else {
+            console.warn('⚠️ Application ID provided but not found in DB');
         }
     }
 
     // If no agent from application, check if user has an assigned agent
     if (!agentId && req.user.assignedAgent) {
         agentId = req.user.assignedAgent;
+        console.log(`🔗 Linked naturally assigned agent: ${agentId}`);
     }
 
     // Calculate Commission if agent exists
     if (agentId) {
+        console.log(`⏳ Processing commission for agent: ${agentId}`);
         const agent = await User.findById(agentId);
         if (agent && agent.role === 'agent') {
             const commissionAmount = (amount * (agent.commissionRate || 10)) / 100;
@@ -79,13 +91,15 @@ const processPayment = asyncHandler(async (req, res) => {
                 amount: commissionAmount,
                 status: 'Pending'
             });
+            console.log(`✅ Commission created: ₹${commissionAmount}`);
 
             // Automatically assign this agent to the customer if not already assigned
             if (!req.user.assignedAgent) {
                 await User.findByIdAndUpdate(req.user._id, { assignedAgent: agentId });
+                console.log('✅ Agent assigned to customer');
             }
 
-            // Notify agent of commission
+            // Notify agent of commission (Don't await to keep response fast, but catch errors)
             sendEmail({
                 to: agent.email,
                 subject: '💰 Commission Earned — ShieldPro',
@@ -99,11 +113,12 @@ const processPayment = asyncHandler(async (req, res) => {
                 title: 'New Commission Earned',
                 message: `You earned ₹${commissionAmount} for the sale of ${policy.policyName}.`,
                 type: 'success'
-            });
+            }).catch(e => console.error('📧 Agent Notification Error:', e.message));
         }
     }
 
     // Create the UserPolicy automatically upon successful payment
+    console.log('⏳ Creating UserPolicy record...');
     const endDate = new Date();
     endDate.setFullYear(endDate.getFullYear() + (policy.durationYears || 1));
 
@@ -116,6 +131,7 @@ const processPayment = asyncHandler(async (req, res) => {
         endDate,
         status: 'Active'
     });
+    console.log('✅ UserPolicy created:', userPolicy._id, 'PolicyNumber:', userPolicy.policyNumber);
 
     res.status(201).json({
         success: true,
@@ -123,7 +139,7 @@ const processPayment = asyncHandler(async (req, res) => {
         userPolicy
     });
 
-    // Notify customer on successful payment
+    // Notify customer on successful payment (Async)
     const frontendUrl = process.env.FRONTEND_URL || 'https://shield-pro-frontend.vercel.app';
     sendEmail({
         to: req.user.email,
@@ -141,7 +157,7 @@ const processPayment = asyncHandler(async (req, res) => {
         title: 'Payment Successful',
         message: `Your payment for ${policy.policyName} has been processed. Policy ${userPolicy.policyNumber} is active.`,
         type: 'success'
-    });
+    }).catch(e => console.error('📧 Customer Notification Error:', e.message));
 });
 
 

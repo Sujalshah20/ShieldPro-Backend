@@ -19,16 +19,22 @@ const app = express();
 // Middleware
 app.use(helmet());
 app.use(cors({
-    origin: ['https://shield-pro-frontend.vercel.app', 'http://localhost:5173'],
+    origin: [
+        'https://shield-pro-frontend.vercel.app', 
+        'https://shieldpro-frontend.vercel.app',
+        'http://localhost:5173', 
+        'http://localhost:3000',
+        'http://127.0.0.1:5173'
+    ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: false }));
 app.use(cookieParser());
 app.use(mongoSanitize());
-app.use(xss());
+// app.use(xss()); // Temporarily disabled or moved below to prevent password corruption
 
 // Static folder for uploads
 app.use('/uploads', express.static('uploads'));

@@ -28,6 +28,7 @@ const sendTokenResponse = (user, statusCode, res, rememberMe = false) => {
            name: user.name,
            email: user.email,
            role: user.role,
+           profilePic: user.profilePic,
            token: token,
            isVerified: user.isVerified
        });
@@ -37,7 +38,8 @@ const sendTokenResponse = (user, statusCode, res, rememberMe = false) => {
 // @route   POST /api/auth/register
 // @access  Public
 const registerUser = asyncHandler(async (req, res) => {
-    const { name, email, password, phone } = req.body;
+    const email = req.body.email.toLowerCase();
+    const { name, password, phone } = req.body;
 
     const userExists = await User.findOne({ email });
 
@@ -92,7 +94,8 @@ const registerUser = asyncHandler(async (req, res) => {
 // @route   POST /api/auth/login
 // @access  Public
 const loginUser = asyncHandler(async (req, res) => {
-    const { email, password, rememberMe } = req.body;
+    const email = req.body.email.toLowerCase();
+    const { password, rememberMe } = req.body;
 
     const user = await User.findOne({ email });
 
@@ -169,7 +172,8 @@ const getMe = asyncHandler(async (req, res) => {
 // @route   POST /api/auth/verify-otp
 // @access  Public
 const verifyOTP = asyncHandler(async (req, res) => {
-    const { email, otp, type } = req.body; // type: 'verification' or 'reset'
+    const email = req.body.email.toLowerCase();
+    const { otp, type } = req.body; // type: 'verification' or 'reset'
     
     if (!email || !otp) {
         res.status(400);
@@ -266,7 +270,7 @@ const oauthLogin = asyncHandler(async (req, res) => {
 // @route   POST /api/auth/forgot-password
 // @access  Public
 const forgotPassword = asyncHandler(async (req, res) => {
-    const { email } = req.body;
+    const email = req.body.email.toLowerCase();
     const user = await User.findOne({ email });
 
     if (!user) {
@@ -331,7 +335,8 @@ const verifyEmail = asyncHandler(async (req, res) => {
 // @route   POST /api/auth/reset-password
 // @access  Public
 const resetPassword = asyncHandler(async (req, res) => {
-    const { email, otp, password } = req.body;
+    const email = req.body.email.toLowerCase();
+    const { otp, password } = req.body;
     
     const user = await User.findOne({
         email,

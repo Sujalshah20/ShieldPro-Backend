@@ -36,7 +36,9 @@ const buyPolicy = asyncHandler(async (req, res) => {
 // @route   GET /api/user-policies
 // @access  Private
 const getMyPolicies = asyncHandler(async (req, res) => {
+    console.log(`📥 Fetching policies for User: ${req.user?._id}`);
     const userPolicies = await UserPolicy.find({ user: req.user._id }).populate('policy');
+    console.log(`📦 Found ${userPolicies.length} policies for user`);
     res.json(userPolicies);
 });
 
