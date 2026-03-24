@@ -19,13 +19,7 @@ const app = express();
 // Middleware
 app.use(helmet());
 app.use(cors({
-    origin: [
-        'https://shield-pro-frontend.vercel.app', 
-        'https://shieldpro-frontend.vercel.app',
-        'http://localhost:5173', 
-        'http://localhost:3000',
-        'http://127.0.0.1:5173'
-    ],
+    origin: true, // Dynamically reflects origin. Fixes strict CORS issues on alternate dev ports/local IPs.
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
