@@ -88,6 +88,18 @@ const userSchema = mongoose.Schema({
     lockUntil: Number,
     verificationToken: String,
     verificationTokenExpire: Date,
+    // OTP Tracking Fields
+    otpRetryAttempts: {
+        type: Number,
+        default: 0
+    },
+    lastOtpSentAt: {
+        type: Date
+    },
+    otpCountSentToday: {
+        type: Number,
+        default: 0
+    },
     documents: [{
         name: String,
         url: String,

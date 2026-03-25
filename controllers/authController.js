@@ -50,13 +50,15 @@ const registerUser = asyncHandler(async (req, res) => {
 
     // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+    const otpExpire = Date.now() + 5 * 60 * 1000; // 5 minutes (as requested)
 
     const user = await User.create({
         name, email, password, phone,
         role: 'customer',
         verificationToken: otp,
-        verificationTokenExpire: otpExpire
+        verificationTokenExpire: otpExpire,
+        lastOtpSentAt: Date.now(),
+        otpCountSentToday: 1
     });
 
     if (user) {
@@ -64,22 +66,10 @@ const registerUser = asyncHandler(async (req, res) => {
             await sendEmail({
                 to: user.email,
                 subject: '🛡️ Verify your ShieldPro Account',
-                html: `
-                    <div style="font-family:sans-serif;max-width:600px;margin:auto;padding:24px;background:#0a0a0f;color:#fff;border-radius:16px;">
-                        <h2 style="color:#f59e0b;">Welcome, ${user.name}! 👋</h2>
-                        <p>Thank you for registering. Your verification code is:</p>
-                        <div style="background:#1a1a24;padding:20px;text-align:center;border-radius:12px;margin:20px 0;">
-                            <h1 style="color:#f59e0b;letter-spacing:10px;font-size:40px;margin:0;">${otp}</h1>
-                        </div>
-                        <p>This code will expire in 10 minutes.</p>
-                        <p style="margin-top:24px;font-size:12px;opacity:0.5;">ShieldPro Insurance · Protecting what matters most.</p>
-                    </div>
-                `
+                html: getOtpTemplate(user.name, otp, 'Welcome to ShieldPro! Use the code below to verify your account.')
             });
             res.status(201).json({ message: 'Registration successful. OTP sent to email.' });
         } catch (error) {
-            // If email fails, we should ideally delete the user or mark as needing re-send
-            // For now, we'll throw to let the user know configuration is broken
             await User.findByIdAndDelete(user._id);
             res.status(500);
             throw new Error(`Registration failed: Email service error. ${error.message}`);
@@ -180,21 +170,40 @@ const verifyOTP = asyncHandler(async (req, res) => {
         throw new Error('Email and OTP are required');
     }
 
-    const query = { email };
-    if (type === 'verification') {
-        query.verificationToken = otp;
-        query.verificationTokenExpire = { $gt: Date.now() };
-    } else {
-        query.resetPasswordToken = otp;
-        query.resetPasswordExpire = { $gt: Date.now() };
-    }
-
-    const user = await User.findOne(query);
+    const user = await User.findOne({ email });
 
     if (!user) {
-        res.status(400);
-        throw new Error('Invalid or expired OTP');
+        res.status(404);
+        throw new Error('User not found');
     }
+
+    // Check if OTP matches and is not expired
+    const isVerificationOTP = type === 'verification' && user.verificationToken === otp && user.verificationTokenExpire > Date.now();
+    const isResetOTP = type === 'reset' && user.resetPasswordToken === otp && user.resetPasswordExpire > Date.now();
+
+    if (!isVerificationOTP && !isResetOTP) {
+        user.otpRetryAttempts += 1;
+        
+        if (user.otpRetryAttempts >= 3) {
+            // Lock or require resend
+            user.verificationToken = undefined;
+            user.verificationTokenExpire = undefined;
+            user.resetPasswordToken = undefined;
+            user.resetPasswordExpire = undefined;
+            user.otpRetryAttempts = 0;
+            await user.save();
+            res.status(400);
+            throw new Error('Too many failed attempts. Please request a new OTP.');
+        }
+
+        await user.save();
+        res.status(400);
+        const remaining = 3 - user.otpRetryAttempts;
+        throw new Error(`Invalid or expired OTP. ${remaining} attempts remaining.`);
+    }
+
+    // Clear attempts and OTP on success
+    user.otpRetryAttempts = 0;
 
     if (type === 'verification') {
         user.isVerified = true;
@@ -203,7 +212,8 @@ const verifyOTP = asyncHandler(async (req, res) => {
         await user.save();
         res.json({ success: true, message: 'Email verified successfully' });
     } else {
-        // For reset, we don't clear the token yet, we clear it in resetPassword
+        // For reset, we don't clear the reset token yet, we clear it in resetPassword
+        await user.save();
         res.json({ success: true, message: 'OTP verified. You can now reset your password.', otp });
     }
 });
@@ -278,29 +288,36 @@ const forgotPassword = asyncHandler(async (req, res) => {
         throw new Error('No account found with this email');
     }
 
+    // Rate limiting: Max 3 per 10 mins
+    const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000);
+    if (user.lastOtpSentAt > tenMinsAgo && user.otpCountSentToday >= 3) {
+        res.status(429);
+        throw new Error('Too many requests. Please wait 10 minutes before requesting another OTP.');
+    }
+
+    // Cooldown check: 60 seconds
+    const oneMinAgo = new Date(Date.now() - 60 * 1000);
+    if (user.lastOtpSentAt > oneMinAgo) {
+        res.status(429);
+        throw new Error('Please wait 60 seconds before requesting another OTP.');
+    }
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     user.resetPasswordToken = otp;
-    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
+    user.resetPasswordExpire = Date.now() + 5 * 60 * 1000;
+    user.lastOtpSentAt = Date.now();
+    user.otpCountSentToday = (user.lastOtpSentAt > tenMinsAgo) ? user.otpCountSentToday + 1 : 1;
+    user.otpRetryAttempts = 0;
     await user.save();
 
     try {
         await sendEmail({
             to: user.email,
             subject: '🛡️ Password Reset OTP',
-            html: `
-                <div style="font-family:sans-serif;max-width:600px;margin:auto;padding:24px;background:#0a0a0f;color:#fff;border-radius:16px;">
-                    <h2 style="color:#f59e0b;">Reset Password 🔑</h2>
-                    <p>Your password reset code is:</p>
-                    <div style="background:#1a1a24;padding:20px;text-align:center;border-radius:12px;margin:20px 0;">
-                        <h1 style="color:#f59e0b;letter-spacing:10px;font-size:40px;margin:0;">${otp}</h1>
-                    </div>
-                    <p>If you did not request this, please ignore this email.</p>
-                </div>
-            `
+            html: getOtpTemplate(user.name, otp, 'You requested a password reset. Use the code below to proceed.')
         });
         res.json({ message: 'OTP sent to email' });
     } catch (error) {
-        // Rollback OTP storage if email sending fails
         user.resetPasswordToken = undefined;
         user.resetPasswordExpire = undefined;
         await user.save();
@@ -308,6 +325,98 @@ const forgotPassword = asyncHandler(async (req, res) => {
         throw new Error('Email sending failed. Please check SMTP configuration.');
     }
 });
+
+// @desc    Resend OTP (Common for verification and reset)
+// @route   POST /api/auth/resend-otp
+// @access  Public
+const resendOTP = asyncHandler(async (req, res) => {
+    const email = req.body.email.toLowerCase();
+    const { type } = req.body; // 'verification' or 'reset'
+    
+    const user = await User.findOne({ email });
+
+    if (!user) {
+        res.status(404);
+        throw new Error('User not found');
+    }
+
+    // Rate limiting: Max 3 per 10 mins
+    const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000);
+    if (user.lastOtpSentAt > tenMinsAgo && user.otpCountSentToday >= 3) {
+        res.status(429);
+        throw new Error('Too many requests. Please wait 10 minutes.');
+    }
+
+    // Cooldown check: 60 seconds
+    const oneMinAgo = new Date(Date.now() - 60 * 1000);
+    if (user.lastOtpSentAt > oneMinAgo) {
+        res.status(429);
+        throw new Error('Please wait 60 seconds.');
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpire = Date.now() + 5 * 60 * 1000;
+
+    if (type === 'verification') {
+        user.verificationToken = otp;
+        user.verificationTokenExpire = otpExpire;
+    } else {
+        user.resetPasswordToken = otp;
+        user.resetPasswordExpire = otpExpire;
+    }
+
+    user.lastOtpSentAt = Date.now();
+    user.otpCountSentToday = (user.lastOtpSentAt > tenMinsAgo) ? user.otpCountSentToday + 1 : 1;
+    user.otpRetryAttempts = 0;
+    await user.save();
+
+    try {
+        await sendEmail({
+            to: user.email,
+            subject: type === 'verification' ? '🛡️ Verify your Account' : '🛡️ Password Reset OTP',
+            html: getOtpTemplate(user.name, otp, type === 'verification' ? 'Here is your new verification code.' : 'Here is your new password reset code.')
+        });
+        res.json({ success: true, message: 'OTP resent successfully' });
+    } catch (error) {
+        res.status(500);
+        throw new Error(`Email sending failed: ${error.message}`);
+    }
+});
+
+// Premium HTML Email Template Helper
+const getOtpTemplate = (userName, otp, message) => `
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .container { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; max-width: 600px; margin: auto; padding: 40px; background: #0a0a0f; color: #ffffff; border-radius: 24px; border: 1px solid #1f2937; }
+        .logo { font-size: 28px; font-weight: 800; color: #3b82f6; margin-bottom: 30px; text-align: center; letter-spacing: -1px; }
+        h2 { font-size: 24px; font-weight: 700; margin-bottom: 16px; color: #ffffff; }
+        p { font-size: 16px; line-height: 1.6; color: #9ca3af; margin-bottom: 24px; }
+        .otp-box { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 32px; text-align: center; border-radius: 20px; border: 1px solid #334155; margin: 32px 0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4); }
+        .otp-code { color: #3b82f6; letter-spacing: 12px; font-size: 48px; font-weight: 800; margin: 0; text-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
+        .footer { margin-top: 40px; padding-top: 30px; border-top: 1px solid #1f2937; text-align: center; }
+        .footer-text { font-size: 13px; color: #6b7280; margin-bottom: 8px; }
+        .brand { color: #3b82f6; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">SHIELD PRO</div>
+        <h2>Hello ${userName || 'User'},</h2>
+        <p>${message}</p>
+        <div class="otp-box">
+            <h1 class="otp-code">${otp}</h1>
+        </div>
+        <p>This code is valid for <strong>5 minutes</strong>. If you did not request this code, please ignore this email or contact support if you have concerns.</p>
+        <div class="footer">
+            <p class="footer-text">© 2026 <span class="brand">ShieldPro Insurance</span>. All rights reserved.</p>
+            <p class="footer-text">Security Powered by Advanced Encryption Protocols</p>
+        </div>
+    </div>
+</body>
+</html>
+`;
 
 // @desc    Verify Email
 // @route   GET /api/auth/verify/:token
@@ -368,5 +477,6 @@ module.exports = {
     oauthLogin,
     forgotPassword,
     verifyEmail,
-    resetPassword
+    resetPassword,
+    resendOTP
 };
