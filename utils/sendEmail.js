@@ -20,7 +20,7 @@ const createTransporter = () => {
     const isSecure = port === 465;
 
     return nodemailer.createTransport({
-        host: SMTP_HOST || 'smtp.gmail.com',
+        host: SMTP_HOST || 'smtp.googlemail.com', // googlemail is often more stable for IPv4
         port: port,
         secure: isSecure,
         auth: {
@@ -29,10 +29,12 @@ const createTransporter = () => {
         },
         tls: {
             rejectUnauthorized: false,
-            minVersion: 'TLSv1.2'
+            minVersion: 'TLSv1.2',
+            // Some environments need family set here as well
+            servername: SMTP_HOST || 'smtp.googlemail.com'
         },
-        connectionTimeout: 30000, // Increased for cloud reliability
-        greetingTimeout: 30000,
+        connectionTimeout: 45000, // Further increased for slow handshakes
+        greetingTimeout: 45000,
         // Force IPv4 to avoid ENETUNREACH issues with IPv6 on some cloud providers
         family: 4
     });
@@ -84,6 +86,10 @@ const sendEmail = async (options, notificationOpts = null) => {
                 success = true;
                 console.log('Resend delivery successful.');
             } catch (resendError) {
+                const isRestrictionError = resendError.message?.toLowerCase().includes('own email address');
+                if (isRestrictionError) {
+                    console.warn('Resend API is in TEST MODE. Only owner can receive emails.');
+                }
                 console.warn(`Resend failed: ${resendError.message}. Falling back to SMTP...`);
             }
         }
@@ -91,7 +97,8 @@ const sendEmail = async (options, notificationOpts = null) => {
         // Fallback to SMTP or use it primarily if Resend is not suitable
         if (!success) {
             const { SMTP_HOST, SMTP_PORT } = process.env;
-            console.log(`Using SMTP for delivery (${SMTP_HOST || 'smtp.gmail.com'}:${SMTP_PORT || 465})...`);
+            const targetHost = SMTP_HOST || 'smtp.googlemail.com';
+            console.log(`Using SMTP for delivery (${targetHost}:${SMTP_PORT || 465})...`);
             const transporter = createTransporter();
             const mailOptions = {
                 from: fromFormat,
