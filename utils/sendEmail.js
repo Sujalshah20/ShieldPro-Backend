@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer');
 const { Resend } = require('resend');
+const dns = require('dns');
 const Notification = require('../models/Notification');
 
 // Initialize Resend if API key is present
@@ -26,6 +27,14 @@ const createTransporter = () => {
         auth: {
             user: SMTP_USER, 
             pass: SMTP_PASS, 
+        },
+        // Force IPv4 via custom lookup
+        lookup: (hostname, options, callback) => {
+            dns.lookup(hostname, { family: 4 }, (err, address, family) => {
+                if (err) return callback(err);
+                console.log(`Resolved ${hostname} to ${address} (IPv${family})`);
+                callback(null, address, family);
+            });
         },
         tls: {
             rejectUnauthorized: false,
