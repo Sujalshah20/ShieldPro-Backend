@@ -31,8 +31,8 @@ const createTransporter = () => {
             rejectUnauthorized: false,
             minVersion: 'TLSv1.2'
         },
-        connectionTimeout: 10000, 
-        greetingTimeout: 10000,
+        connectionTimeout: 30000, // Increased for cloud reliability
+        greetingTimeout: 30000,
         // Force IPv4 to avoid ENETUNREACH issues with IPv6 on some cloud providers
         family: 4
     });
@@ -90,7 +90,8 @@ const sendEmail = async (options, notificationOpts = null) => {
 
         // Fallback to SMTP or use it primarily if Resend is not suitable
         if (!success) {
-            console.log('Using SMTP for delivery...');
+            const { SMTP_HOST, SMTP_PORT } = process.env;
+            console.log(`Using SMTP for delivery (${SMTP_HOST || 'smtp.gmail.com'}:${SMTP_PORT || 465})...`);
             const transporter = createTransporter();
             const mailOptions = {
                 from: fromFormat,
