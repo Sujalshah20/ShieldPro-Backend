@@ -1,26 +1,43 @@
 const nodemailer = require('nodemailer');
+const dns = require('dns');
 const Notification = require('../models/Notification');
 
 /**
  * Creates a Nodemailer transporter configured for Gmail SMTP.
- * Uses GMAIL_USER and GMAIL_APP_PASSWORD from environment variables.
+ * Enhanced for cloud environments like Render (timeouts + STRICT IPv4 forcing).
  */
 const createTransporter = () => {
-    const { GMAIL_USER, GMAIL_APP_PASSWORD } = process.env;
+    const GMAIL_USER = process.env.GMAIL_USER || process.env.SMTP_USER;
+    const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD || process.env.SMTP_PASS;
     
     if (!GMAIL_USER || !GMAIL_APP_PASSWORD) {
-        console.error('❌ Gmail SMTP credentials missing from environment variables (GMAIL_USER, GMAIL_APP_PASSWORD).');
+        console.error('❌ Gmail SMTP credentials missing from environment variables (GMAIL_USER/SMTP_USER, GMAIL_APP_PASSWORD/SMTP_PASS).');
         throw new Error('Email service configuration error: Missing credentials.');
     }
 
     return nodemailer.createTransport({
-        service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false, // Use STARTTLS
+        requireTLS: true,
         auth: {
             user: GMAIL_USER,
             pass: GMAIL_APP_PASSWORD,
         },
+        // STRICT IPv4 Force via custom lookup
+        lookup: (hostname, options, callback) => {
+            dns.lookup(hostname, { family: 4 }, (err, address, family) => {
+                if (err) return callback(err);
+                callback(null, address, family);
+            });
+        },
+        family: 4,
+        connectionTimeout: 60000,
+        greetingTimeout: 60000,
+        socketTimeout: 60000,
         tls: {
-            rejectUnauthorized: false
+            rejectUnauthorized: false, // Set to true for production if certificates are verified
+            servername: 'smtp.gmail.com'
         }
     });
 };
@@ -41,7 +58,7 @@ const createTransporter = () => {
  */
 const sendEmail = async (options, notificationOpts = null) => {
     try {
-        const fromEmail = (process.env.GMAIL_USER || 'onboarding@resend.dev').trim();
+        const fromEmail = (process.env.GMAIL_USER || process.env.SMTP_USER || 'noreply@shieldpro.in').trim();
         const fromName = (process.env.FROM_NAME || 'ShieldPro Insurance').trim();
         const fromFormat = `"${fromName}" <${fromEmail}>`;
 
