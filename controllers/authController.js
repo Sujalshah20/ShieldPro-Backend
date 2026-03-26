@@ -62,18 +62,14 @@ const registerUser = asyncHandler(async (req, res) => {
     });
 
     if (user) {
-        try {
-            await sendEmail({
-                to: user.email,
-                subject: '🛡️ Verify your ShieldPro Account',
-                html: getOtpTemplate(user.name, otp, 'Welcome to ShieldPro! Use the code below to verify your account.')
-            });
-            res.status(201).json({ message: 'Registration successful. OTP sent to email.' });
-        } catch (error) {
-            await User.findByIdAndDelete(user._id);
-            res.status(500);
-            throw new Error(`Registration failed: Email service error. ${error.message}`);
-        }
+        // Send email asynchronously in the background so the user doesn't wait
+        sendEmail({
+            to: user.email,
+            subject: '🛡️ Verify your ShieldPro Account',
+            html: getOtpTemplate(user.name, otp, 'Welcome to ShieldPro! Use the code below to verify your account.')
+        }).catch(err => console.error(`Background Email Error (${user.email}):`, err.message));
+
+        res.status(201).json({ message: 'Registration successful. OTP sent to email.' });
     } else {
         res.status(400);
         throw new Error('Invalid user data error');
