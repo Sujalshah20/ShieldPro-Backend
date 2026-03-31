@@ -5,12 +5,13 @@ const Policy = require('../models/Policy');
 // @route   POST /api/policies
 // @access  Private
 const createPolicy = asyncHandler(async (req, res) => {
-    const { policyName, policyType, premiumAmount, coverageAmount, durationYears } = req.body;
+    const { policyName, policyType, description, premiumAmount, coverageAmount, durationYears } = req.body;
 
     const policy = await Policy.create({
         user: req.user._id,
         policyName,
         policyType,
+        description,
         premiumAmount,
         coverageAmount,
         durationYears

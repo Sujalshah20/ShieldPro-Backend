@@ -11,6 +11,7 @@ const validate = (req, res, next) => {
 const policyValidation = [
     body('policyName').trim().notEmpty().withMessage('Policy name is required'),
     body('policyType').isIn(['Life', 'Health', 'Vehicle', 'Home', 'Travel', 'Auto', 'Property']).withMessage('Invalid policy type'),
+    body('description').trim().notEmpty().withMessage('Description is required'),
     body('premiumAmount').isNumeric().withMessage('Premium amount must be a number'),
     body('coverageAmount').isNumeric().withMessage('Coverage amount must be a number'),
     body('durationYears').isInt({ min: 1 }).withMessage('Duration must be at least 1 year'),

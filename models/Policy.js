@@ -23,6 +23,10 @@ const policySchema = mongoose.Schema({
         type: Number,
         required: [true, 'Please add a coverage amount']
     },
+    description: {
+        type: String,
+        required: [true, 'Please add a policy description']
+    },
     durationYears: {
         type: Number,
         required: [true, 'Please add duration in years']
