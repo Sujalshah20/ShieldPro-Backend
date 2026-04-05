@@ -41,4 +41,7 @@ const policySchema = mongoose.Schema({
     timestamps: true
 });
 
+// Add index for performance
+policySchema.index({ user: 1 });
+
 module.exports = mongoose.model('Policy', policySchema);

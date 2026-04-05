@@ -52,19 +52,50 @@ const getMyApplications = asyncHandler(async (req, res) => {
     res.json(applications);
 });
 
-// @desc    Get all applications (Admin/Agent)
+// @desc    Get all applications (Admin/Agent) with search, filter and pagination
 // @route   GET /api/applications
 // @access  Private (Admin/Agent)
 const getAllApplications = asyncHandler(async (req, res) => {
+    const pageSize = Number(req.query.limit) || 10;
+    const page = Number(req.query.page) || 1;
+
     let query = {};
     if (req.user.role === 'agent') {
         query.agent = req.user._id;
     }
 
+    // Status Filter
+    if (req.query.status && req.query.status !== 'All') {
+        query.status = req.query.status;
+    }
+
+    // Advanced Search (Across User and Policy)
+    if (req.query.search) {
+        const [matchingUsers, matchingPolicies] = await Promise.all([
+            User.find({ name: { $regex: req.query.search, $options: 'i' } }).select('_id'),
+            Policy.find({ policyName: { $regex: req.query.search, $options: 'i' } }).select('_id')
+        ]);
+
+        query.$or = [
+            { user: { $in: matchingUsers.map(u => u._id) } },
+            { policy: { $in: matchingPolicies.map(p => p._id) } }
+        ];
+    }
+
+    const count = await PolicyApplication.countDocuments(query);
     const applications = await PolicyApplication.find(query)
-        .populate('user', 'name email')
-        .populate('policy', 'policyName policyType');
-    res.json(applications);
+        .populate('user', 'name email phone')
+        .populate('policy', 'policyName policyType')
+        .limit(pageSize)
+        .skip(pageSize * (page - 1))
+        .sort({ createdAt: -1 });
+
+    res.json({
+        applications,
+        page,
+        pages: Math.ceil(count / pageSize),
+        total: count
+    });
 });
 
 const UserPolicy = require('../models/UserPolicy');

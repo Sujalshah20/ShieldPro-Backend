@@ -10,9 +10,25 @@ const sendEmail = require('../utils/sendEmail');
 // @route   GET /api/admin/agents
 // @access  Private/Admin
 const getAgents = asyncHandler(async (req, res) => {
-    const agents = await User.find({ role: 'agent' }).select('-password');
+    const pageSize = Number(req.query.limit) || 10;
+    const page = Number(req.query.page) || 1;
+
+    const query = { role: 'agent' };
+    if (req.query.search) {
+        query.$or = [
+            { name: { $regex: req.query.search, $options: 'i' } },
+            { email: { $regex: req.query.search, $options: 'i' } }
+        ];
+    }
+
+    const count = await User.countDocuments(query);
+    const agents = await User.find(query)
+        .select('-password')
+        .limit(pageSize)
+        .skip(pageSize * (page - 1))
+        .sort({ createdAt: -1 });
     
-    // Enrich with stats
+    // Enrich with stats (now restricted to pagination window for performance)
     const enrichedAgents = await Promise.all(agents.map(async (agent) => {
         const customerCount = await User.countDocuments({ assignedAgent: agent._id });
         const salesCount = await Commission.countDocuments({ agent: agent._id });
@@ -31,7 +47,12 @@ const getAgents = asyncHandler(async (req, res) => {
         };
     }));
 
-    res.json(enrichedAgents);
+    res.json({
+        agents: enrichedAgents,
+        page,
+        pages: Math.ceil(count / pageSize),
+        total: count
+    });
 });
 
 // @desc    Create a new agent account
@@ -115,10 +136,40 @@ const updateAgentStatus = asyncHandler(async (req, res) => {
 // @route   GET /api/admin/customers
 // @access  Private/Admin
 const getCustomers = asyncHandler(async (req, res) => {
-    const customers = await User.find({ role: 'customer' })
+    const pageSize = Number(req.query.limit) || 10;
+    const page = Number(req.query.page) || 1;
+
+    const query = { role: 'customer' };
+    if (req.query.search) {
+        query.$or = [
+            { name: { $regex: req.query.search, $options: 'i' } },
+            { email: { $regex: req.query.search, $options: 'i' } },
+            { phone: { $regex: req.query.search, $options: 'i' } }
+        ];
+    }
+
+    const count = await User.countDocuments(query);
+    const customers = await User.find(query)
         .populate('assignedAgent', 'name email')
-        .select('-password');
-    res.json(customers);
+        .select('-password')
+        .limit(pageSize)
+        .skip(pageSize * (page - 1))
+        .sort({ createdAt: -1 });
+
+    const enrichedCustomers = await Promise.all(customers.map(async (customer) => {
+        const claimsCount = await Claim.countDocuments({ user: customer._id });
+        return {
+            ...customer._doc,
+            claims: claimsCount
+        };
+    }));
+
+    res.json({
+        customers: enrichedCustomers,
+        page,
+        pages: Math.ceil(count / pageSize),
+        total: count
+    });
 });
 
 // @desc    Reassign customer to a different agent
@@ -203,7 +254,10 @@ const getClaims = asyncHandler(async (req, res) => {
         .populate('user', 'name email')
         .populate({
             path: 'userPolicy',
-            populate: { path: 'policy', select: 'policyName policyType' }
+            populate: [
+                { path: 'policy', select: 'policyName policyType' },
+                { path: 'agent', select: 'name email role' }
+            ]
         })
         .sort({ createdAt: -1 });
     res.json(claims);

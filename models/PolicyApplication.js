@@ -47,4 +47,10 @@ const applicationSchema = mongoose.Schema({
     timestamps: true
 });
 
+// Add indexes for performance
+applicationSchema.index({ user: 1 });
+applicationSchema.index({ policy: 1 });
+applicationSchema.index({ agent: 1 });
+applicationSchema.index({ status: 1 });
+
 module.exports = mongoose.model('PolicyApplication', applicationSchema);

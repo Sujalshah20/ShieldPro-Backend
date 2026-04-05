@@ -5,6 +5,7 @@ const {
     getPolicies,
     getPolicyById,
     getAvailablePolicies,
+    updatePolicy,
     updatePolicyStatus,
     deletePolicy
 } = require('../controllers/policyController');
@@ -20,7 +21,8 @@ router.route('/available')
 
 router.route('/:id')
     .get(protect, getPolicyById)
-    .delete(protect, authorize('admin'), deletePolicy);
+    .put(protect, authorize('admin'), policyValidation, updatePolicy)
+    .delete(protect, authorize('admin', 'agent'), deletePolicy);
 
 router.route('/:id/status')
     .put(protect, authorize('admin', 'agent'), statusValidation, updatePolicyStatus);

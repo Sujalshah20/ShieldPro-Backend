@@ -8,6 +8,7 @@ const sendEmail = require('../utils/sendEmail');
 // @access  Private
 const fileClaim = asyncHandler(async (req, res) => {
     const { userPolicyId, amount, description } = req.body;
+    console.log(`📑 Filing claim for User Policy: ${userPolicyId} by User: ${req.user._id}`);
 
     const userPolicy = await UserPolicy.findById(userPolicyId).populate('policy');
     if (!userPolicy) {
@@ -50,6 +51,7 @@ const fileClaim = asyncHandler(async (req, res) => {
         type: 'info'
     });
 
+    console.log(`✅ Claim ${claim._id} created successfully for amount ₹${amount}`);
     res.status(201).json(claim);
 });
 
@@ -57,6 +59,8 @@ const fileClaim = asyncHandler(async (req, res) => {
 // @route   GET /api/claims
 // @access  Private
 const getMyClaims = asyncHandler(async (req, res) => {
+    console.log(`🔍 Fetching claims for authenticated user: ${req.user._id} (${req.user.role})`);
+    
     const claims = await Claim.find({ user: req.user._id })
         .populate({
             path: 'userPolicy',
@@ -65,7 +69,10 @@ const getMyClaims = asyncHandler(async (req, res) => {
                 { path: 'agent', select: 'name email role' }
             ]
         })
-        .populate('comments.user', 'name role');
+        .populate('comments.user', 'name role')
+        .sort({ createdAt: -1 });
+
+    console.log(`📊 Found ${claims.length} claims for user ${req.user._id}`);
     res.json(claims);
 });
 

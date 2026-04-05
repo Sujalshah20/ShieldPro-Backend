@@ -128,4 +128,29 @@ userSchema.pre('save', async function (next) {
     this.password = await bcrypt.hash(this.password, salt);
 });
 
+// Hide sensitive fields by default when converting to JSON or Object
+userSchema.set('toJSON', {
+    transform: function (doc, ret, options) {
+        delete ret.password;
+        delete ret.resetPasswordToken;
+        delete ret.resetPasswordExpire;
+        delete ret.verificationToken;
+        delete ret.verificationTokenExpire;
+        delete ret.otpCountSentToday;
+        delete ret.otpRetryAttempts;
+        delete ret.lastOtpSentAt;
+        delete ret.lockUntil;
+        delete ret.loginAttempts;
+        delete ret.__v;
+        return ret;
+    }
+});
+
+userSchema.set('toObject', {
+    transform: function (doc, ret, options) {
+        delete ret.password;
+        return ret;
+    }
+});
+
 module.exports = mongoose.model('User', userSchema);

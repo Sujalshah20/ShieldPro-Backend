@@ -44,4 +44,9 @@ const transactionSchema = mongoose.Schema({
     timestamps: true
 });
 
+// Add indexes for performance
+transactionSchema.index({ user: 1 });
+transactionSchema.index({ policy: 1 });
+transactionSchema.index({ status: 1 });
+
 module.exports = mongoose.model('Transaction', transactionSchema);
