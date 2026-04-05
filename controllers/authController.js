@@ -10,7 +10,8 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Set Token in HttpOnly Cookie
 const sendTokenResponse = (user, statusCode, res, rememberMe = false) => {
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
+    const jwtSecret = process.env.JWT_SECRET || 'fallback_shieldpro_jwt_secret_key_2026';
+    const token = jwt.sign({ id: user._id, role: user.role }, jwtSecret, {
         expiresIn: rememberMe ? '30d' : '30m',
     });
 
