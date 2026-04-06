@@ -4,7 +4,8 @@ const {
     fileClaim,
     getMyClaims,
     getAllClaims,
-    updateClaimStatus
+    updateClaimStatus,
+    deleteClaim
 } = require('../controllers/claimController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 const { claimValidation, statusValidation } = require('../middleware/validationMiddleware');
@@ -18,6 +19,7 @@ router.route('/all')
     .get(protect, authorize('agent', 'admin'), getAllClaims);
 
 router.route('/:id/status')
-    .put(protect, authorize('agent', 'admin'), statusValidation, updateClaimStatus);
+    .put(protect, authorize('agent', 'admin'), statusValidation, updateClaimStatus)
+    .delete(protect, authorize('admin', 'agent'), deleteClaim);
 
 module.exports = router;

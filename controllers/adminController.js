@@ -303,6 +303,51 @@ const updateClaimStatus = asyncHandler(async (req, res) => {
     }
 });
 
+// @desc    Delete a claim (Admin)
+// @route   DELETE /api/admin/claims/:id
+// @access  Private/Admin
+const deleteClaim = asyncHandler(async (req, res) => {
+    const claim = await Claim.findById(req.params.id);
+
+    if (claim) {
+        await Claim.findByIdAndDelete(req.params.id);
+        res.json({ message: 'Claim deleted successfully', id: req.params.id });
+    } else {
+        res.status(404);
+        throw new Error('Claim not found');
+    }
+});
+
+// @desc    Update a customer (Admin)
+// @route   PUT /api/admin/customers/:id
+// @access  Private/Admin
+const updateCustomer = asyncHandler(async (req, res) => {
+    const { name, email, phone, status } = req.body;
+    const customer = await User.findById(req.params.id);
+
+    if (!customer || customer.role !== 'customer') {
+        res.status(404);
+        throw new Error('Customer not found');
+    }
+
+    // Check if email already exists for another user
+    if (email && email !== customer.email) {
+        const emailExists = await User.findOne({ email });
+        if (emailExists) {
+            res.status(400);
+            throw new Error('Email already registered');
+        }
+        customer.email = email;
+    }
+
+    customer.name = name || customer.name;
+    customer.phone = phone || customer.phone;
+    customer.status = status || customer.status;
+
+    const updatedCustomer = await customer.save();
+    res.json(updatedCustomer);
+});
+
 module.exports = {
     getAgents,
     createAgent,
@@ -315,5 +360,7 @@ module.exports = {
     getClaims,
     getTransactions,
     getCommissions,
-    updateClaimStatus
+    updateClaimStatus,
+    deleteClaim,
+    updateCustomer
 };

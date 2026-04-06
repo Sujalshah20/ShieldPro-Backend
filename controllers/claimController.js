@@ -159,9 +159,33 @@ const updateClaimStatus = asyncHandler(async (req, res) => {
     res.json(updatedClaim);
 });
 
+// @desc    Delete a claim
+// @route   DELETE /api/claims/:id
+// @access  Private/Admin
+const deleteClaim = asyncHandler(async (req, res) => {
+    const claim = await Claim.findById(req.params.id);
+
+    if (!claim) {
+        res.status(404);
+        throw new Error('Claim not found');
+    }
+
+    // Only allow admin or the owner (maybe?) to delete. Usually admin.
+    if (req.user.role !== 'admin') {
+        res.status(403);
+        throw new Error('Not authorized: Only admins can delete claims.');
+    }
+
+    await Claim.findByIdAndDelete(req.params.id);
+
+    console.log(`🗑️ Claim ${req.params.id} deleted by Admin: ${req.user._id}`);
+    res.json({ message: 'Claim removed successfully', id: req.params.id });
+});
+
 module.exports = {
     fileClaim,
     getMyClaims,
     getAllClaims,
-    updateClaimStatus
+    updateClaimStatus,
+    deleteClaim
 };

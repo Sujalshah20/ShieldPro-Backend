@@ -22,9 +22,11 @@ router.route('/available')
 router.route('/:id')
     .get(protect, getPolicyById)
     .put(protect, authorize('admin'), policyValidation, updatePolicy)
+    .patch(protect, authorize('admin'), updatePolicy)
     .delete(protect, authorize('admin', 'agent'), deletePolicy);
 
 router.route('/:id/status')
-    .put(protect, authorize('admin', 'agent'), statusValidation, updatePolicyStatus);
+    .put(protect, authorize('admin', 'agent'), statusValidation, updatePolicyStatus)
+    .patch(protect, authorize('admin', 'agent'), statusValidation, updatePolicyStatus);
 
 module.exports = router;
