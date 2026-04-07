@@ -79,6 +79,14 @@ const userSchema = mongoose.Schema({
         type: Number,
         default: 10 // Percentage
     },
+    specialization: {
+        type: String,
+        default: 'General Insurance'
+    },
+    experience: {
+        type: String,
+        default: '5 Years'
+    },
     resetPasswordToken: String,
     resetPasswordExpire: Date,
     loginAttempts: {

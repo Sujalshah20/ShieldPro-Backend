@@ -19,7 +19,7 @@ const updateProfile = asyncHandler(async (req, res) => {
         throw new Error('User not found');
     }
 
-    const { name, phone, email, nationalId, panNumber, address, dob, gender, employment, profilePic } = req.body;
+    const { name, phone, email, nationalId, panNumber, address, dob, gender, employment, profilePic, specialization, experience } = req.body;
 
     // 1. Validations
     if (name && !/^[A-Za-z\s]{3,50}$/.test(name)) {
@@ -82,6 +82,8 @@ const updateProfile = asyncHandler(async (req, res) => {
     user.gender = gender !== undefined ? gender : user.gender;
     user.employment = employment !== undefined ? employment : user.employment;
     user.profilePic = profilePic !== undefined ? profilePic : user.profilePic;
+    user.specialization = specialization !== undefined ? specialization : user.specialization;
+    user.experience = experience !== undefined ? experience : user.experience;
     // Safety fallbacks to pass schema validation for legacy accounts seeded manually via database
     if (!user.phone) user.phone = '6000000000';
     if (!user.name) user.name = 'Admin User';

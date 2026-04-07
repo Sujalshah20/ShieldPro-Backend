@@ -48,6 +48,7 @@ app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/agent', require('./routes/agentRoutes'));
 app.use('/api/commissions', require('./routes/commissionRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
+app.use('/api/payments', require('./routes/paymentRoutes'));
 
 const { errorHandler, notFound } = require('./middleware/errorMiddleware');
 
@@ -66,7 +67,14 @@ const PORT = process.env.PORT || 5000;
 const startServer = async () => {
     try {
         await connectDB();
-        app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+        app.listen(PORT, () => {
+            console.log(`Server started on port ${PORT}`);
+            if (process.env.RAZORPAY_KEY_ID) {
+                console.log(`Razorpay Gateway: ENABLED (${process.env.RAZORPAY_KEY_ID.substring(0, 8)}...)`);
+            } else {
+                console.warn('Razorpay Gateway: DISABLED (Key ID not found in .env)');
+            }
+        });
     } catch (error) {
         console.error('Failed to start server:', error.message);
         process.exit(1);
