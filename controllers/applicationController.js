@@ -3,6 +3,8 @@ const PolicyApplication = require('../models/PolicyApplication');
 const Policy = require('../models/Policy');
 const sendEmail = require('../utils/sendEmail');
 
+const User = require('../models/User');
+
 // @desc    Submit new policy application
 // @route   POST /api/applications
 // @access  Private
@@ -15,12 +17,16 @@ const submitApplication = asyncHandler(async (req, res) => {
         throw new Error('Policy not found');
     }
 
+    // Auto-fetch the user to get their assigned agent if any
+    const user = await User.findById(req.user._id);
+
     const application = await PolicyApplication.create({
         user: req.user._id,
         policy: policyId,
         formData,
         documents,
-        status: 'Pending'
+        status: 'Pending',
+        agent: user?.assignedAgent || undefined
     });
 
     // Notify customer of submission
@@ -100,7 +106,6 @@ const getAllApplications = asyncHandler(async (req, res) => {
 
 const UserPolicy = require('../models/UserPolicy');
 const Commission = require('../models/Commission');
-const User = require('../models/User');
 
 // @desc    Update application status
 // @route   PUT /api/applications/:id/status
@@ -114,6 +119,12 @@ const updateApplicationStatus = asyncHandler(async (req, res) => {
     if (!application) {
         res.status(404);
         throw new Error('Application not found');
+    }
+
+    // Agent authorization check (crucial for multi-agent projects)
+    if (req.user.role === 'agent' && application.agent?.toString() !== req.user._id.toString()) {
+        res.status(403);
+        throw new Error('Not authorized: You can only update applications assigned to you.');
     }
 
     application.status = status;

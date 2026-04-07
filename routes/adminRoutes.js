@@ -4,9 +4,10 @@ const {
     getAgents, createAgent, updateAgentStatus, 
     getCustomers, reassignAgent, getInsights,
     exportTransactions, exportCommissions,
-    getClaims, getTransactions, getCommissions, updateClaimStatus, deleteClaim,
+    getTransactions, getCommissions,
     updateCustomer
 } = require('../controllers/adminController');
+const { updateClaimStatus, deleteClaim, getAllClaims: getClaims } = require('../controllers/claimController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 const { statusValidation } = require('../middleware/validationMiddleware');
 

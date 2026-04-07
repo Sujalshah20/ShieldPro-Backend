@@ -11,15 +11,23 @@ const Commission = require('../models/Commission');
 const getAssignedCustomers = asyncHandler(async (req, res) => {
     const customers = await User.find({ assignedAgent: req.user._id, role: 'customer' });
     
-    // Supplement with application and policy counts
+    // Supplement with application, policy counts and premium totals
     const enrichedCustomers = await Promise.all(customers.map(async (customer) => {
         const applicationCount = await PolicyApplication.countDocuments({ user: customer._id });
-        const activePolicyCount = await UserPolicy.countDocuments({ user: customer._id, status: 'Active' });
+        const activePolicies = await UserPolicy.find({ user: customer._id, status: 'Active' }).populate('policy');
         
+        const totalPremium = activePolicies.reduce((sum, up) => sum + (up.policy?.premiumAmount || 0), 0);
+        
+        // Basic payment status logic: if they have active policies, assume PAID for now, 
+        // in a real app check Transaction history
+        const paymentStatus = activePolicies.length > 0 ? 'PAID' : 'N/A';
+
         return {
-            ...customer._doc,
+            ...customer.toObject(),
             applicationCount,
-            activePolicyCount
+            activePolicyCount: activePolicies.length,
+            totalPremium,
+            paymentStatus
         };
     }));
 

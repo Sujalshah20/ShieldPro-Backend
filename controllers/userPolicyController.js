@@ -7,6 +7,7 @@ const Policy = require('../models/Policy');
 // @access  Private
 const buyPolicy = asyncHandler(async (req, res) => {
     const { policyId, durationYears } = req.body;
+    const duration = parseInt(durationYears) || 1; // Default to 1 year
 
     const policy = await Policy.findById(policyId);
     if (!policy) {
@@ -14,9 +15,11 @@ const buyPolicy = asyncHandler(async (req, res) => {
         throw new Error('Policy not found');
     }
 
+    const user = await User.findById(req.user._id);
+
     const startDate = new Date();
     const endDate = new Date();
-    endDate.setFullYear(startDate.getFullYear() + parseInt(durationYears));
+    endDate.setFullYear(startDate.getFullYear() + duration);
 
     const policyNumber = `POL-${Math.floor(100000 + Math.random() * 900000)}`;
 
@@ -26,6 +29,7 @@ const buyPolicy = asyncHandler(async (req, res) => {
         policyNumber,
         startDate,
         endDate,
+        agent: user?.assignedAgent || undefined,
         status: 'Active'
     });
 
