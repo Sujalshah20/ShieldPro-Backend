@@ -82,7 +82,7 @@ const registerUser = asyncHandler(async (req, res) => {
 // @access  Public
 const loginUser = asyncHandler(async (req, res) => {
     const email = req.body.email.toLowerCase();
-    const { password, rememberMe } = req.body;
+    const { password, rememberMe, portalRole } = req.body;
 
     const user = await User.findOne({ email });
 
@@ -98,6 +98,16 @@ const loginUser = asyncHandler(async (req, res) => {
     }
 
     if (await user.matchPassword(password)) {
+        // ── Role enforcement: check AFTER password is correct to avoid leaking user existence ──
+        if (portalRole && user.role !== portalRole) {
+            const portalLabel = portalRole.charAt(0).toUpperCase() + portalRole.slice(1);
+            const userLabel   = user.role.charAt(0).toUpperCase() + user.role.slice(1);
+            res.status(403);
+            throw new Error(
+                `This is the ${portalLabel} portal. Your account has ${userLabel} access. Please use the correct portal.`
+            );
+        }
+
         if (user.loginAttempts > 0) {
             user.loginAttempts = 0;
             user.lockUntil = undefined;
@@ -135,6 +145,7 @@ const loginUser = asyncHandler(async (req, res) => {
         }
     }
 });
+
 
 // @desc    Logout User / clear cookie
 // @route   POST /api/auth/logout
