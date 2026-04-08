@@ -4,6 +4,7 @@ const PolicyApplication = require('../models/PolicyApplication');
 const Policy = require('../models/Policy');
 const UserPolicy = require('../models/UserPolicy');
 const Commission = require('../models/Commission');
+const Transaction = require('../models/Transaction');
 
 // @desc    Get all customers assigned to an agent
 // @route   GET /api/agent/customers
@@ -11,22 +12,37 @@ const Commission = require('../models/Commission');
 const getAssignedCustomers = asyncHandler(async (req, res) => {
     const customers = await User.find({ assignedAgent: req.user._id, role: 'customer' });
     
-    // Supplement with application, policy counts and premium totals
+    // Supplement with application, policy counts, premium totals and real payment data
     const enrichedCustomers = await Promise.all(customers.map(async (customer) => {
         const applicationCount = await PolicyApplication.countDocuments({ user: customer._id });
-        const activePolicies = await UserPolicy.find({ user: customer._id, status: 'Active' }).populate('policy');
         
+        // Active policies with premium amounts
+        const activePolicies = await UserPolicy.find({ user: customer._id, status: 'Active' })
+            .populate('policy', 'premiumAmount');
+        
+        const activePolicyCount = activePolicies.length;
         const totalPremium = activePolicies.reduce((sum, up) => sum + (up.policy?.premiumAmount || 0), 0);
         
-        // Basic payment status logic: if they have active policies, assume PAID for now, 
-        // in a real app check Transaction history
-        const paymentStatus = activePolicies.length > 0 ? 'PAID' : 'N/A';
+        // Real payment data from Transaction records
+        const successfulTransactions = await Transaction.find({ user: customer._id, status: 'Success' });
+        const totalPaid = successfulTransactions.reduce((sum, t) => sum + (t.amount || 0), 0);
+        
+        // Derive payment status from real transaction data
+        let paymentStatus;
+        if (totalPaid > 0) {
+            paymentStatus = 'PAID';
+        } else if (activePolicyCount > 0) {
+            paymentStatus = 'PENDING';
+        } else {
+            paymentStatus = 'NO PAYMENTS';
+        }
 
         return {
             ...customer.toObject(),
             applicationCount,
-            activePolicyCount: activePolicies.length,
+            activePolicyCount,
             totalPremium,
+            totalPaid,
             paymentStatus
         };
     }));

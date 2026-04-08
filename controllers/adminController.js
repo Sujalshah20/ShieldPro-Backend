@@ -1,6 +1,8 @@
 const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
 const PolicyApplication = require('../models/PolicyApplication');
+const UserPolicy = require('../models/UserPolicy');
+const Policy = require('../models/Policy');
 const Commission = require('../models/Commission');
 const Transaction = require('../models/Transaction');
 const Claim = require('../models/Claim');
@@ -158,9 +160,24 @@ const getCustomers = asyncHandler(async (req, res) => {
 
     const enrichedCustomers = await Promise.all(customers.map(async (customer) => {
         const claimsCount = await Claim.countDocuments({ user: customer._id });
+        
+        // Fetch UserPolicies with Active status and populate Policy to get premiumAmount
+        const activePolicies = await UserPolicy.find({ user: customer._id, status: 'Active' })
+            .populate('policy', 'premiumAmount');
+        
+        const activePoliciesCount = activePolicies.length;
+        const totalPremium = activePolicies.reduce((sum, up) => sum + (up.policy?.premiumAmount || 0), 0);
+        
+        // Calculate Total Paid from successful transactions
+        const successfulTransactions = await Transaction.find({ user: customer._id, status: 'Success' });
+        const totalPaid = successfulTransactions.reduce((sum, t) => sum + (t.amount || 0), 0);
+
         return {
             ...customer._doc,
-            claims: claimsCount
+            claims: claimsCount,
+            activePoliciesCount,
+            totalPremium,
+            totalPaid
         };
     }));
 
