@@ -29,6 +29,18 @@ const paymentSchema = new mongoose.Schema({
         enum: ['created', 'success', 'failed'],
         default: 'created'
     },
+    policyId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Policy'
+    },
+    applicationId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'PolicyApplication'
+    },
+    paymentId: {
+        type: String,
+        default: 'pending'
+    },
     receipt: {
         type: String
     }

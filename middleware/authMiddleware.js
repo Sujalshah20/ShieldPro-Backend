@@ -25,14 +25,16 @@ const protect = asyncHandler(async (req, res, next) => {
         req.user = await User.findById(decoded.id).select('-password');
         
         if (!req.user) {
+            res.cookie('token', 'none', { expires: new Date(Date.now() + 10 * 1000), httpOnly: true });
             res.status(401);
-            throw new Error('User no longer exists. Please login again.');
+            throw new Error('User account no longer exists. Please login again.');
         }
 
         next();
     } catch (error) {
+        res.cookie('token', 'none', { expires: new Date(Date.now() + 10 * 1000), httpOnly: true });
         res.status(401);
-        throw new Error('Session expired or invalid token. Please login again.');
+        throw new Error('Session expired or invalid. Please login again.');
     }
 });
 
