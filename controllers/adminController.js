@@ -40,7 +40,7 @@ const getAgents = asyncHandler(async (req, res) => {
         ]);
 
         return {
-            ...agent._doc,
+            ...agent.toObject(), // BUG FIX: agent._doc skips virtuals; use .toObject() instead
             stats: {
                 customers: customerCount,
                 sales: salesCount,
@@ -84,10 +84,14 @@ const createAgent = asyncHandler(async (req, res) => {
 
     if (agent) {
         // Notify agent of account creation
-        sendEmail({
-            to: agent.email,
-            subject: '💼 Welcome to the ShieldPro Force!',
-            html: `<div style="font-family:sans-serif;max-width:600px;margin:auto;padding:24px;background:#0a0a0f;color:#fff;border-radius:16px;">
+        // BUG FIX: sendEmail signature is sendEmail(emailOpts, notificationOpts).
+        // The old code passed a single object mixing both concerns — the notification
+        // data was being silently ignored. Correct: pass two separate arguments.
+        sendEmail(
+            {
+                to: agent.email,
+                subject: '💼 Welcome to the ShieldPro Force!',
+                html: `<div style="font-family:sans-serif;max-width:600px;margin:auto;padding:24px;background:#0a0a0f;color:#fff;border-radius:16px;">
                 <h2 style="color:#f59e0b;">Welcome, ${agent.name}! 🚀</h2>
                 <p>Your agent account has been created by the administration. You are now part of our distributed workforce.</p>
                 <div style="background:rgba(255,255,255,0.05);padding:16px;border-radius:12px;margin:16px 0;">
@@ -98,12 +102,14 @@ const createAgent = asyncHandler(async (req, res) => {
                 <p>Please log in to your dashboard to start managing your leads and commissions.</p>
                 <a href="${process.env.FRONTEND_URL || 'https://shield-pro-frontend.vercel.app'}/login" style="display:inline-block;margin-top:16px;padding:12px 28px;background:#f59e0b;color:#000;border-radius:8px;font-weight:bold;text-decoration:none;">Agent Login →</a>
             </div>`
-        }, {
-            userId: agent._id,
-            title: 'Welcome to the Force!',
-            message: `Hi ${agent.name}, your agent account is now active. Check your email for login credentials.`,
-            type: 'success'
-        });
+            },
+            {
+                userId: agent._id,
+                title: 'Welcome to the Force!',
+                message: `Hi ${agent.name}, your agent account is now active. Check your email for login credentials.`,
+                type: 'success'
+            }
+        ).catch(e => console.error('Agent welcome email error:', e.message));
 
         res.status(201).json({
             _id: agent._id,

@@ -2,8 +2,11 @@ const asyncHandler = require('express-async-handler');
 const PolicyApplication = require('../models/PolicyApplication');
 const Policy = require('../models/Policy');
 const sendEmail = require('../utils/sendEmail');
-
 const User = require('../models/User');
+// BUG FIX: These were require()'d mid-file (line 107), after some functions were defined.
+// Moved to top to follow Node.js best practices and fix static analysis errors.
+const UserPolicy = require('../models/UserPolicy');
+const Commission = require('../models/Commission');
 
 // @desc    Submit new policy application
 // @route   POST /api/applications
@@ -104,8 +107,6 @@ const getAllApplications = asyncHandler(async (req, res) => {
     });
 });
 
-const UserPolicy = require('../models/UserPolicy');
-const Commission = require('../models/Commission');
 
 // @desc    Update application status
 // @route   PUT /api/applications/:id/status

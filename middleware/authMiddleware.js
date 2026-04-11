@@ -32,9 +32,17 @@ const protect = asyncHandler(async (req, res, next) => {
 
         next();
     } catch (error) {
+        // BUG FIX: Don't swallow the original JWT error. Re-throw it so asyncHandler
+        // can surface the real reason (TokenExpiredError, JsonWebTokenError, etc.).
+        // Only wrap it in a user-friendly message, but preserve context in logs.
+        if (error.message === 'User account no longer exists. Please login again.') {
+            throw error; // already user-friendly
+        }
+        console.error('JWT Verification failed:', error.name, error.message);
         res.cookie('token', 'none', { expires: new Date(Date.now() + 10 * 1000), httpOnly: true });
+        const isExpired = error.name === 'TokenExpiredError';
         res.status(401);
-        throw new Error('Session expired or invalid. Please login again.');
+        throw new Error(isExpired ? 'Session expired. Please login again.' : 'Invalid token. Please login again.');
     }
 });
 

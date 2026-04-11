@@ -51,16 +51,17 @@ app.use('/api/commissions', require('./routes/commissionRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/payments', require('./routes/paymentRoutes'));
 
-const { errorHandler, notFound } = require('./middleware/errorMiddleware');
-
-// Root Route
+// Root Route — MUST be registered before notFound middleware
 app.get('/', (req, res) => {
     res.send('ShieldPro API is running...');
 });
 
-// Error Middleware
+const { errorHandler, notFound } = require('./middleware/errorMiddleware');
+
+// Error Middleware — must be last
 app.use(notFound);
 app.use(errorHandler);
+
 
 const PORT = process.env.PORT || 5000;
 
