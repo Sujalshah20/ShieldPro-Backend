@@ -26,7 +26,7 @@ const createOrder = asyncHandler(async (req, res) => {
     };
 
     try {
-        const order = await razorpay.orders.create(options);
+        const order = await razorpay().orders.create(options);
 
         // Save order details to DB (initial status: created)
         await Payment.create({
