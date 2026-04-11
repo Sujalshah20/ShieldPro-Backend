@@ -10,7 +10,10 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Set Token in HttpOnly Cookie
 const sendTokenResponse = (user, statusCode, res, rememberMe = false) => {
-    const jwtSecret = process.env.JWT_SECRET || 'fallback_shieldpro_jwt_secret_key_2026';
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+        throw new Error('JWT_SECRET is not defined in environment variables');
+    }
     const token = jwt.sign({ id: user._id, role: user.role }, jwtSecret, {
         expiresIn: rememberMe ? '30d' : '30m',
     });
@@ -91,6 +94,11 @@ const loginUser = asyncHandler(async (req, res) => {
         throw new Error('No account found with this email. Please register first.');
     }
     
+    if (user.status === 'suspended') {
+        res.status(403);
+        throw new Error('Your account has been suspended. Please contact support.');
+    }
+
     if (user.lockUntil && user.lockUntil > Date.now()) {
         res.status(403);
         const minutesLeft = Math.ceil((user.lockUntil - Date.now()) / 60000);

@@ -20,7 +20,10 @@ const protect = asyncHandler(async (req, res, next) => {
     }
 
     try {
-        const jwtSecret = process.env.JWT_SECRET || 'fallback_shieldpro_jwt_secret_key_2026';
+        const jwtSecret = process.env.JWT_SECRET;
+        if (!jwtSecret) {
+            throw new Error('JWT_SECRET is not defined in environment variables');
+        }
         const decoded = jwt.verify(token, jwtSecret);
         req.user = await User.findById(decoded.id).select('-password');
         
@@ -28,6 +31,21 @@ const protect = asyncHandler(async (req, res, next) => {
             res.cookie('token', 'none', { expires: new Date(Date.now() + 10 * 1000), httpOnly: true });
             res.status(401);
             throw new Error('User account no longer exists. Please login again.');
+        }
+
+        // BUG FIX: Check if user was suspended after they got their token
+        if (req.user.status === 'suspended') {
+            res.cookie('token', 'none', { expires: new Date(Date.now() + 10 * 1000), httpOnly: true });
+            res.status(403);
+            throw new Error('Your account has been suspended. Session terminated.');
+        }
+
+        // BUG FIX: Ensure unverified users can't access business logic routes.
+        // We allow '/me' so the frontend can retrieve the 'isVerified: false' status.
+        const isAuthMe = req.originalUrl.includes('/auth/me');
+        if (!req.user.isVerified && !isAuthMe) {
+            res.status(403);
+            throw new Error('Email verification required to access this feature.');
         }
 
         next();
