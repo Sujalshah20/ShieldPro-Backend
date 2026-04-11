@@ -20,11 +20,14 @@ const protect = asyncHandler(async (req, res, next) => {
     }
 
     try {
-        const jwtSecret = process.env.JWT_SECRET;
-        if (!jwtSecret) {
-            throw new Error('JWT_SECRET is not defined in environment variables');
+        if (!process.env.JWT_SECRET) {
+            if (process.env.NODE_ENV === 'production') {
+                throw new Error('JWT_SECRET is missing. Check Render Environment Variables.');
+            }
+            process.env.JWT_SECRET = 'dev_secret_fallback_2026';
         }
-        const decoded = jwt.verify(token, jwtSecret);
+        
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         req.user = await User.findById(decoded.id).select('-password');
         
         if (!req.user) {

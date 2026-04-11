@@ -11,10 +11,16 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 // Set Token in HttpOnly Cookie
 const sendTokenResponse = (user, statusCode, res, rememberMe = false) => {
     const jwtSecret = process.env.JWT_SECRET;
+    
     if (!jwtSecret) {
-        throw new Error('JWT_SECRET is not defined in environment variables');
+        if (process.env.NODE_ENV === 'production') {
+            throw new Error('FATAL: JWT_SECRET is missing in Production. Add it to Render/Vercel Environment Variables.');
+        }
+        // Fallback for local development only
+        process.env.JWT_SECRET = 'dev_secret_fallback_2026';
     }
-    const token = jwt.sign({ id: user._id, role: user.role }, jwtSecret, {
+
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
         expiresIn: rememberMe ? '30d' : '30m',
     });
 
