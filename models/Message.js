@@ -23,4 +23,10 @@ const messageSchema = mongoose.Schema({
     timestamps: true
 });
 
+// Add indexes for performance optimization
+messageSchema.index({ sender: 1 });
+messageSchema.index({ receiver: 1 });
+messageSchema.index({ createdAt: -1 });
+messageSchema.index({ sender: 1, receiver: 1 }); // Index for conversation lookups
+
 module.exports = mongoose.model('Message', messageSchema);

@@ -46,4 +46,11 @@ const paymentSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
+// Add indexes for performance optimization
+paymentSchema.index({ userId: 1 });
+paymentSchema.index({ razorpayOrderId: 1 });
+paymentSchema.index({ policyId: 1 });
+paymentSchema.index({ status: 1 });
+paymentSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model('Payment', paymentSchema);

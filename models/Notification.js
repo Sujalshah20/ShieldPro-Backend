@@ -35,4 +35,10 @@ const notificationSchema = mongoose.Schema({
     timestamps: true
 });
 
+// Add indexes for performance optimization
+notificationSchema.index({ user: 1 });
+notificationSchema.index({ isRead: 1 });
+notificationSchema.index({ createdAt: -1 });
+notificationSchema.index({ user: 1, isRead: 1 }); // Multi-key index for unread count queries
+
 module.exports = mongoose.model('Notification', notificationSchema);

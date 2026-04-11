@@ -34,4 +34,11 @@ const commissionSchema = mongoose.Schema({
     timestamps: true
 });
 
+// Add indexes for performance optimization
+// Frequent queries filter by agent, customer, or transaction status
+commissionSchema.index({ agent: 1 });
+commissionSchema.index({ customer: 1 });
+commissionSchema.index({ status: 1 });
+commissionSchema.index({ agent: 1, createdAt: -1 }); // Compound index for earnings history
+
 module.exports = mongoose.model('Commission', commissionSchema);

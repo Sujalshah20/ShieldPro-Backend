@@ -121,6 +121,12 @@ const userSchema = mongoose.Schema({
     timestamps: true
 });
 
+// Add indexes for performance optimization
+userSchema.index({ role: 1 });
+userSchema.index({ status: 1 });
+userSchema.index({ assignedAgent: 1 });
+userSchema.index({ createdAt: -1 });
+
 // Match user entered password to hashed password in database
 userSchema.methods.matchPassword = async function (enteredPassword) {
     return await bcrypt.compare(enteredPassword, this.password);
