@@ -6,6 +6,7 @@ const Policy = require('../models/Policy');
 const Commission = require('../models/Commission');
 const Transaction = require('../models/Transaction');
 const Claim = require('../models/Claim');
+const AgentApplication = require('../models/AgentApplication');
 const sendEmail = require('../utils/sendEmail');
 
 // @desc    Get all agents with performance stats
@@ -371,6 +372,192 @@ const updateCustomer = asyncHandler(async (req, res) => {
     res.json(updatedCustomer);
 });
 
+// @desc    Get all agent applications
+// @route   GET /api/admin/agent-applications
+// @access  Private/Admin
+const getAgentApplications = asyncHandler(async (req, res) => {
+    const applications = await AgentApplication.find().sort({ createdAt: -1 });
+    res.json(applications);
+});
+
+// @desc    Update agent application status (Approve/Reject)
+// @route   PUT /api/admin/agent-applications/:id/status
+// @access  Private/Admin
+const updateAgentApplicationStatus = asyncHandler(async (req, res) => {
+    const { status } = req.body;
+    const application = await AgentApplication.findById(req.params.id);
+
+    if (!application) {
+        res.status(404);
+        throw new Error('Application not found');
+    }
+
+    if (application.status !== 'pending') {
+        res.status(400);
+        throw new Error(`Application already ${application.status}`);
+    }
+
+    application.status = status;
+    await application.save();
+
+    if (status === 'approved') {
+        // Create the agent account automatically
+        const tempPassword = Math.random().toString(36).slice(-8); // Generate random temp password
+        
+        const agent = await User.create({
+            name: application.fullName,
+            email: application.email,
+            password: tempPassword,
+            role: 'agent',
+            phone: application.phone,
+            address: application.city, // Using city as initial address
+            experience: `${application.experienceYears} Years`,
+            isVerified: true
+        });
+
+        if (agent) {
+            // Notify agent of approval and account creation
+            sendEmail(
+                {
+                    to: agent.email,
+                    subject: '🎉 Congratulations! Your Agent Application is Approved',
+                    html: `<div style="font-family:sans-serif;max-width:600px;margin:auto;padding:24px;border:1px solid #e2e8f0;border-radius:16px;">
+                    <h2 style="color:#1e40af;">Welcome to ShieldPro, ${agent.name}! 🚀</h2>
+                    <p>We are excited to inform you that your application to join our agent network has been <strong>Approved</strong>.</p>
+                    <div style="background:#f8fafc;padding:20px;border-radius:12px;margin:20px 0;">
+                        <p style="margin:0 0 10px;font-size:14px;color:#64748b;">Your Temporary Login Credentials:</p>
+                        <p style="margin:5px 0;font-weight:bold;color:#1e293b;">Email: ${agent.email}</p>
+                        <p style="margin:5px 0;font-weight:bold;color:#1e293b;">Password: ${tempPassword}</p>
+                    </div>
+                    <p>For security, please change your password immediately after your first login.</p>
+                    <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/login" style="display:inline-block;padding:12px 30px;background:#1e40af;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:bold;margin-top:10px;">Login to Agent Dashboard</a>
+                </div>`
+                },
+                {
+                    userId: agent._id,
+                    title: 'Application Approved!',
+                    message: `Welcome aboard ${agent.name}! Your agent account is now active.`,
+                    type: 'success'
+                }
+            ).catch(e => console.error('Approval notification error:', e.message));
+        }
+    } else if (status === 'rejected') {
+        // Notify agent of rejection
+        sendEmail(
+            {
+                to: application.email,
+                subject: 'Update on your Agent Application - ShieldPro',
+                html: `<div style="font-family:sans-serif;max-width:600px;margin:auto;padding:24px;border:1px solid #e2e8f0;border-radius:16px;">
+                <h2 style="color:#b91c1c;">Application Status Update</h2>
+                <p>Hi ${application.fullName},</p>
+                <p>Thank you for your interest in joining ShieldPro. After reviewing your application, we regret to inform you that we cannot move forward with your request at this time.</p>
+                <p>We appreciate the time you took to apply and wish you the best in your future professional endeavors.</p>
+                <p>Regards,<br>ShieldPro Onboarding Team</p>
+            </div>`
+        }).catch(e => console.error('Rejection notification error:', e.message));
+    }
+
+    res.json({ message: `Application ${status} successfully` });
+});
+
+// @desc    Get all admins (Super Admin only)
+// @route   GET /api/admin/admins
+// @access  Private/Admin
+const getAdmins = asyncHandler(async (req, res) => {
+    // Only super-admin can list other admins
+    if (req.user.role !== 'super-admin') {
+        res.status(403);
+        throw new Error('Only Super Admin can manage other admins');
+    }
+
+    const admins = await User.find({ role: { $in: ['super-admin', 'admin', 'sub-admin'] } })
+        .select('-password')
+        .sort({ role: 1, createdAt: -1 });
+
+    res.json(admins);
+});
+
+// @desc    Create a new admin account (Super Admin only)
+// @route   POST /api/admin/admins
+// @access  Private/Admin
+const createAdmin = asyncHandler(async (req, res) => {
+    if (req.user.role !== 'super-admin') {
+        res.status(403);
+        throw new Error('Only Super Admin can create other admins');
+    }
+
+    const { name, email, password, role, phone } = req.body;
+
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+        res.status(400);
+        throw new Error('User already exists');
+    }
+
+    const admin = await User.create({
+        name,
+        email,
+        password,
+        role: role || 'admin',
+        phone,
+        isVerified: true // Admins are pre-verified
+    });
+
+    if (admin) {
+        // Notify new admin
+        sendEmail(
+            {
+                to: admin.email,
+                subject: '🛡️ ShieldPro Administrative Access Granted',
+                html: `<div style="font-family:sans-serif;max-width:600px;margin:auto;padding:24px;background:#1e293b;color:#f8fafc;border-radius:16px;">
+                <h2 style="color:#38bdf8;">Administrative Access Active</h2>
+                <p>Hello ${admin.name},</p>
+                <p>You have been granted <strong>${admin.role.toUpperCase()}</strong> access to the ShieldPro control center.</p>
+                <div style="background:rgba(255,255,255,0.05);padding:16px;border-radius:12px;margin:16px 0;">
+                    <p style="margin:0 0 8px;font-size:14px;opacity:0.6;">Your Access Credentials:</p>
+                    <p style="margin:4px 0;font-weight:bold;">Portal URL: <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/login" style="color:#38bdf8;text-decoration:none;">Admin Dashboard</a></p>
+                    <p style="margin:4px 0;font-weight:bold;">Email: ${admin.email}</p>
+                    <p style="margin:4px 0;font-weight:bold;">Temp Password: ${password}</p>
+                </div>
+                <p style="font-size:14px;color:#94a3b8;">Security Note: Please change your password immediately after your first login for security compliance.</p>
+                <p>Regards,<br>ShieldPro Infrastructure Team</p>
+            </div>`
+            },
+            {
+                userId: admin._id,
+                title: 'Admin Access Granted',
+                message: `You now have ${admin.role} privileges. Check your email for login details.`,
+                type: 'info'
+            }
+        ).catch(e => console.error('Admin notification email error:', e.message));
+
+        res.status(201).json({
+            _id: admin._id,
+            name: admin.name,
+            email: admin.email,
+            role: admin.role
+        });
+    } else {
+        res.status(400);
+        throw new Error('Invalid admin data');
+    }
+});
+
+// @desc    Delete a customer account (Admin)
+// @route   DELETE /api/admin/customers/:id
+// @access  Private/Admin
+const deleteCustomer = asyncHandler(async (req, res) => {
+    const customer = await User.findById(req.params.id);
+
+    if (!customer || customer.role !== 'customer') {
+        res.status(404);
+        throw new Error('Customer not found');
+    }
+
+    await User.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Customer deleted successfully', id: req.params.id });
+});
+
 module.exports = {
     getAgents,
     createAgent,
@@ -385,5 +572,10 @@ module.exports = {
     getCommissions,
     updateClaimStatus,
     deleteClaim,
-    updateCustomer
+    updateCustomer,
+    getAgentApplications,
+    updateAgentApplicationStatus,
+    getAdmins,
+    createAdmin,
+    deleteCustomer
 };

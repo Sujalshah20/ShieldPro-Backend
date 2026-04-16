@@ -23,7 +23,7 @@ const sendEmail = async (options, notificationOpts = null) => {
             throw new Error('Email service configuration error: Missing Brevo API Key.');
         }
 
-        const fromEmail = (process.env.FROM_EMAIL || process.env.GMAIL_USER || 'noreply@shieldpro.in').trim();
+        const fromEmail = (process.env.FROM_EMAIL || process.env.GMAIL_USER || 'noreply@shieldpro.com').trim();
         const fromName = (process.env.FROM_NAME || 'ShieldPro Insurance').trim();
 
         const emailData = {

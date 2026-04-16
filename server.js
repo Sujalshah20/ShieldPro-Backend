@@ -16,14 +16,33 @@ dotenv.config({ path: envPath });
 
 const app = express();
 
-// Middleware
-app.use(helmet());
-app.use(cors({
-    origin: true, // Dynamically reflects origin. Fixes strict CORS issues on alternate dev ports/local IPs.
+// CORS Configuration - Explicit origins for production
+const corsOptions = {
+    origin: function(origin, callback) {
+        // Allow requests with no origin (mobile apps, curl, postman)
+        // Also allow localhost for development
+        const allowedOrigins = [
+            'http://localhost:5173',
+            'http://localhost:3000', 
+            'http://localhost:10000',
+            'https://shieldpro.vercel.app',
+            'https://shieldpro-frontend.vercel.app'
+        ];
+        
+        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+};
+
+// Middleware
+app.use(helmet());
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: false }));
 app.use(cookieParser());

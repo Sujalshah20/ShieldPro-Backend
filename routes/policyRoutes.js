@@ -17,7 +17,7 @@ router.route('/')
     .get(protect, getPolicies);
 
 router.route('/available')
-    .get(protect, getAvailablePolicies);
+    .get(getAvailablePolicies);
 
 router.route('/:id')
     .get(protect, getPolicyById)

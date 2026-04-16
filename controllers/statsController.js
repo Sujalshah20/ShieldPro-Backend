@@ -5,6 +5,7 @@ const Claim = require('../models/Claim');
 const UserPolicy = require('../models/UserPolicy');
 const Commission = require('../models/Commission');
 const PolicyApplication = require('../models/PolicyApplication');
+const AgentApplication = require('../models/AgentApplication');
 
 // @desc    Get system stats for admin
 // @route   GET /api/stats/admin
@@ -94,8 +95,9 @@ const getAdminStats = asyncHandler(async (req, res) => {
     // Sort by revenue and take top 4
     const sortedTopAgents = topAgents.sort((a, b) => b.revenue - a.revenue).slice(0, 4);
 
-    // 7. Pending Actions (Wait for approval applications + pending claims)
+    // 7. Pending Actions (Wait for approval applications + pending claims + pending agent apps)
     const pendingApps = await PolicyApplication.countDocuments({ status: 'Pending' });
+    const pendingAgentApps = await AgentApplication.countDocuments({ status: 'pending' });
     const pendingClaimsCount = claims.filter(c => c.status === 'Pending').length;
 
     res.json({
@@ -105,7 +107,7 @@ const getAdminStats = asyncHandler(async (req, res) => {
             totalCustomers: customers.length,
             totalAgents: agents.length,
             activePolicies: userPolicies.filter(up => up.status === 'Active').length,
-            pendingActions: pendingApps + pendingClaimsCount
+            pendingActions: pendingApps + pendingClaimsCount + pendingAgentApps
         },
         charts: {
             policyDistribution: policyDistribution.map(p => ({
