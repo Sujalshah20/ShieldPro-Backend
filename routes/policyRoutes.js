@@ -16,8 +16,13 @@ router.route('/')
     .post(protect, authorize('admin', 'agent'), policyValidation, createPolicy)
     .get(protect, getPolicies);
 
+const cacheConfig = (req, res, next) => {
+    res.set('Cache-Control', 'public, max-age=300, s-maxage=600'); // Cache for 5 mins
+    next();
+};
+
 router.route('/available')
-    .get(getAvailablePolicies);
+    .get(cacheConfig, getAvailablePolicies);
 
 router.route('/:id')
     .get(protect, getPolicyById)

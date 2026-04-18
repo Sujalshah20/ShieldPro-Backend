@@ -41,6 +41,8 @@ const corsOptions = {
 };
 
 // Middleware
+const compression = require('compression');
+app.use(compression()); // Enable gzip/brotli compression
 app.use(helmet());
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));

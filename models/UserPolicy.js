@@ -42,6 +42,7 @@ const userPolicySchema = mongoose.Schema({
 // Add indexes for performance
 userPolicySchema.index({ user: 1 });
 userPolicySchema.index({ policy: 1 });
+userPolicySchema.index({ agent: 1 });
 userPolicySchema.index({ status: 1 });
 
 module.exports = mongoose.model('UserPolicy', userPolicySchema);

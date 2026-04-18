@@ -43,5 +43,7 @@ const policySchema = mongoose.Schema({
 
 // Add index for performance
 policySchema.index({ user: 1 });
+policySchema.index({ status: 1 });
+policySchema.index({ policyType: 1 });
 
 module.exports = mongoose.model('Policy', policySchema);
