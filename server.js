@@ -16,39 +16,58 @@ dotenv.config({ path: envPath });
 
 const app = express();
 
-// CORS Configuration - Explicit origins for production
+// --- PRODUCTION CORS CONFIGURATION ---
+const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://localhost:10000',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:3000',
+    'https://shieldpro.vercel.app',
+    'https://shieldpro-frontend.vercel.app'
+];
+
 const corsOptions = {
-    origin: function(origin, callback) {
-        // Allow requests with no origin (mobile apps, curl, postman)
-        // Also allow localhost for development
-        const allowedOrigins = [
-            'http://localhost:5173',
-            'http://localhost:3000', 
-            'http://localhost:10000',
-            'https://shieldpro.vercel.app',
-            'https://shieldpro-frontend.vercel.app'
-        ];
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl)
+        if (!origin) return callback(null, true);
         
-        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        const isAllowedOrigin = allowedOrigins.includes(origin) || 
+                                origin.endsWith('.vercel.app'); // Supports Vercel previews
+
+        if (isAllowedOrigin) {
             callback(null, true);
         } else {
+            console.warn(`CORS Blocked for origin: ${origin}`);
             callback(new Error('Not allowed by CORS'));
         }
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+    allowedHeaders: [
+        'Content-Type', 
+        'Authorization', 
+        'X-Requested-With', 
+        'Accept', 
+        'Origin',
+        'Access-Control-Request-Method',
+        'Access-Control-Request-Headers'
+    ],
+    optionsSuccessStatus: 204 // Some legacy browsers (IE11, various SmartTVs) choke on 200
 };
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Enable pre-flight for all routes explicitly
 
 // Middleware
 const compression = require('compression');
-app.use(compression()); // Enable gzip/brotli compression
-app.use(helmet());
-app.use(cors(corsOptions));
+app.use(compression());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: false }));
 app.use(cookieParser());
 app.use(mongoSanitize());
+
+// app.use(helmet()); // Keeping helmet disabled for now to ensure fetch works first
 // app.use(xss()); // Temporarily disabled or moved below to prevent password corruption
 
 // Static folder for uploads
