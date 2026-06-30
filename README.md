@@ -1,84 +1,75 @@
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=200&section=header&text=ShieldPro&fontSize=80&fontColor=fff&animation=twinkling&fontAlignY=35&desc=Your%20Trusted%20Insurance%20Management%20Platform&descAlignY=60&descSize=18" width="100%"/>
+<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=12,20,30&height=200&section=header&text=ShieldPro%20API&fontSize=70&fontColor=fff&animation=twinkling&fontAlignY=35&desc=Backend%20Server%20for%20Insurance%20Management%20Platform&descAlignY=60&descSize=18" width="100%"/>
 
-[![React](https://img.shields.io/badge/React-18.x-61DAFB?style=for-the-badge&logo=react&logoColor=white)](https://reactjs.org/)
-[![Vite](https://img.shields.io/badge/Vite-5.x-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
-[![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-3.x-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+# ⚙️ ShieldPro - Backend
+
+### *Powerful REST API for Insurance Management*
+
+[![Node.js](https://img.shields.io/badge/Node.js-18.x-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Express](https://img.shields.io/badge/Express-4.x-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-6.x-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+[![JWT](https://img.shields.io/badge/JWT-Auth-000000?style=for-the-badge&logo=json-web-tokens&logoColor=white)](https://jwt.io/)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
 <p align="center">
-  <img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&weight=600&size=22&pause=1000&color=2563EB&center=true&vCenter=true&random=false&width=600&lines=Smart+Insurance+Management;Seamless+Policy+Tracking;Fast+%26+Easy+Claims+Processing;Your+Protection%2C+Our+Priority+🛡️" alt="Typing SVG" />
+  <img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&weight=600&size=22&pause=1000&color=10B981&center=true&vCenter=true&random=false&width=600&lines=Secure+REST+API;JWT+Authentication;MongoDB+Database;Built+with+Node.js+%26+Express+⚡" alt="Typing SVG" />
+</p>
+
+<p align="center">
+  <a href="https://shield-pro-frontend.vercel.app/">
+    <img src="https://img.shields.io/badge/🌐_View_Live_App-10B981?style=for-the-badge&logo=vercel&logoColor=white" />
+  </a>
 </p>
 
 [🌐 Live Website](https://shield-pro-frontend.vercel.app/) &nbsp;·&nbsp;
-[🐛 Report Bug](https://github.com/Sujalshah20/ShieldPro-Frontend/issues) &nbsp;·&nbsp;
-[✨ Request Feature](https://github.com/Sujalshah20/ShieldPro-Frontend/issues)
-<p align="center">
-  <a href="https://shield-pro-frontend.vercel.app/">
-    <img src="https://img.shields.io/badge/🚀_Visit_Live_Website-2563EB?style=for-the-badge&logo=vercel&logoColor=white" />
-  </a>
-</p>
+[🐛 Report Bug](https://github.com/Sujalshah20/ShieldPro-Backend/issues) &nbsp;·&nbsp;
+[✨ Request Feature](https://github.com/Sujalshah20/ShieldPro-Backend/issues)
+
 </div>
 
 ---
 
-## 📖 About ShieldPro
+## 📖 About
 
-**ShieldPro** is a modern, full-featured **Insurance Management Platform** designed to simplify the way users manage their insurance policies, track claims, and stay protected. With an intuitive interface and real-time updates, ShieldPro bridges the gap between insurers and policyholders.
+This is the **Backend API Server** for **ShieldPro** — a modern Insurance Management Platform. It handles authentication, policy management, claims processing, and database operations.
 
-> 💡 *"Because your peace of mind deserves the best protection."*
+> ⚡ *Built with scalability, security, and performance in mind.*
 
 ---
 
-## 📸 Screenshots
+## 📦 Project Repositories
+
+ShieldPro is split into **two separate repositories**. You'll need to clone **both** to run the full application.
 
 <div align="center">
 
-### 🏠 Home Page
-<img src="https://i.ibb.co/dwPCnQZb/home.png" alt="Home Page" width="100%" style="border-radius: 10px;"/>
-
-<br/><br/>
-
-### 📊 Dashboard
-<img src="https://i.ibb.co/ht7mM3x/dashboard.png" alt="Dashboard" width="100%" style="border-radius: 10px;"/>
-
-<br/><br/>
-
-### 📋 Browse Policies
-<img src="https://i.ibb.co/pByRghpS/browse-policy.png" alt="Browse Policies" width="100%" style="border-radius: 10px;"/>
-
-<br/><br/>
-
-### 📝 Claims Page
-<img src="https://i.ibb.co/3981RxTR/claim-page.png" alt="Claims Page" width="100%" style="border-radius: 10px;"/>
-
-<br/><br/>
-
-### 🔐 Login & Register
-
-| Login | Register |
-|:-----:|:--------:|
-| <img src="https://i.ibb.co/rf7hvDnQ/login.png" alt="Login Page" width="100%"/> | <img src="https://i.ibb.co/rfdQ4k25/register.png" alt="Register Page" width="100%"/> |
+| Repository | Description | Link |
+|:----------:|:-----------|:----:|
+| ⚙️ **Backend** (You are here) | Node.js + Express + MongoDB API | [![Backend](https://img.shields.io/badge/GitHub-ShieldPro--Backend-10B981?style=for-the-badge&logo=github)](https://github.com/Sujalshah20/ShieldPro-Backend) |
+| 🎨 **Frontend** | React + Vite + TailwindCSS UI | [![Frontend](https://img.shields.io/badge/GitHub-ShieldPro--Frontend-2563EB?style=for-the-badge&logo=github)](https://github.com/Sujalshah20/ShieldPro-Frontend) |
 
 </div>
 
+> ⚠️ **Important:** To run the project successfully, you **must download and set up BOTH repositories**.
+
 ---
 
-## ✨ Features 
+## ✨ Features
 
 | Feature | Status |
 |---------|:------:|
-| 🔐 User Authentication (Login / Register) | ✅ |
-| 📋 Insurance Policy Listing & Details | ✅ |
-| 🛒 Buy / Subscribe to Insurance Plans | ✅ |
-| 📝 Claims Submission & Tracking | ✅ |
-| 👤 User Profile & Dashboard | ✅ |
-| 📊 Policy Analytics & Summary | ✅ |
-| 🔔 Notifications & Renewal Alerts | 🚧 |
-| 💬 Live Chat Support | 🔜 |
-| 📱 Mobile Responsive Design | ✅ |
-| 🌙 Dark Mode | 🔜 |
+| 🔐 JWT Authentication & Authorization | ✅ |
+| 👤 User Registration & Login | ✅ |
+| 📋 Insurance Policies CRUD | ✅ |
+| 📝 Claims Submission & Management | ✅ |
+| 🛡️ Password Hashing (bcrypt) | ✅ |
+| 🔄 RESTful API Architecture | ✅ |
+| 📊 User Dashboard Data | ✅ |
+| 🌐 CORS Configuration | ✅ |
+| 📧 Email Notifications | 🚧 |
+| 💳 Payment Gateway Integration | 🔜 |
+| 📤 File Uploads (Documents) | 🔜 |
 
 ---
 
@@ -88,24 +79,26 @@
 
 | Category | Technologies |
 |:--------:|:------------|
-| **Frontend Framework** | ![React](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black) |
-| **Language** | ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black) |
-| **Styling** | ![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white) |
-| **Build Tool** | ![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white) |
-| **Routing** | ![React Router](https://img.shields.io/badge/React_Router-CA4245?style=flat-square&logo=react-router&logoColor=white) |
-| **HTTP Client** | ![Axios](https://img.shields.io/badge/Axios-5A29E4?style=flat-square&logo=axios&logoColor=white) |
-| **Deployment** | ![Vercel](https://img.shields.io/badge/Vercel-000000?style=flat-square&logo=vercel&logoColor=white) |
+| **Runtime** | ![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=node.js&logoColor=white) |
+| **Framework** | ![Express](https://img.shields.io/badge/Express-000000?style=flat-square&logo=express&logoColor=white) |
+| **Database** | ![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=flat-square&logo=mongodb&logoColor=white) |
+| **ODM** | ![Mongoose](https://img.shields.io/badge/Mongoose-880000?style=flat-square&logo=mongoose&logoColor=white) |
+| **Authentication** | ![JWT](https://img.shields.io/badge/JWT-000000?style=flat-square&logo=json-web-tokens&logoColor=white) |
+| **Security** | ![bcrypt](https://img.shields.io/badge/bcrypt-525252?style=flat-square&logo=letsencrypt&logoColor=white) |
+| **Environment** | ![dotenv](https://img.shields.io/badge/dotenv-ECD53F?style=flat-square&logo=dotenv&logoColor=black) |
 
 </div>
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Full Installation Guide
 
 ### ✅ Prerequisites
 
-Make sure you have the following installed:
+Make sure you have these installed on your system:
 
 ```bash
-node >= 18.0.0
-npm  >= 9.0.0
+node    >= 18.0.0
+npm     >= 9.0.0
+git     >= 2.0.0
+mongodb >= 6.0   (or MongoDB Atlas account)
